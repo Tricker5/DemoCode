@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DbClient1</title>
+    <script>
+        var dbClientSocket;
+
+        function dConnect(){
+            try{
+                if(!dbClientSocket){
+                    dbClientSocket = new WebSocket("ws://0.0.0.0:7777");
+                    dbClientSocket.onopen= dOpen;
+                    dbClientSocket.onerror = dError;
+                }
+                
+            }catch(e){
+                alert("error"+e.data);
+                return;
+            }
+           
+        }
+        function dOpen(){
+            alert('连接成功！');
+            dbClientSocket.onmessage= dMessage;
+            dbClientSocket.onclose = dClose;
+        }
+        function dError(e){
+            alert('连接错误！');
+            dbClientSocket = null;
+        }
+        function dMessage(msg){
+           
+        
+        }
+        function dClose(){
+            alert('连接关闭！');
+            dbClientSocket = null;
+        }
+        function Send(){
+            sendmsg={
+                "type" : NORMALSTR,
+                "data" : document.getElementById("msg").value
+            };
+            dbClientSocket.send(JSON.stringify(sendmsg));
+        }
+        function Close(){
+            dbClientSocket.close();
+            
+        }
+        
+        function jsonToStr(data){
+            var str ="";
+            for(var i in data){
+                for(var j in data[i]){
+                    str=str+data[i][j]+" ";
+                }
+                str+="\n";
+            }
+            return str;
+        }
+        
+        
+    </script>
+</head>
+<body>
+    <div>
+            <input id="msg" type="text">
+            <button id="connect" onclick="dConnect();">Connect</button>
+            <button id="send" onclick="Send();">Send</button>
+            <button id="close" onclick="Close();">Close</button>
+    </div>    
+</body>
+</html>
