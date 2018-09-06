@@ -8,6 +8,9 @@
     <script>
         var dbClientSocket;
 
+        const NORMALSTR = 0;
+        const MONITORARR =1;
+
         function dConnect(){
             try{
                 if(!dbClientSocket){
@@ -32,6 +35,15 @@
             dbClientSocket = null;
         }
         function dMessage(msg){
+            data = JSON.parse(msg.data);
+            switch(data["head"]){
+                case NORMALSTR:
+                    alert("服务器说："+data["body"])
+                    break;
+
+                default:
+                    break;
+            }
            
         
         }
@@ -41,8 +53,8 @@
         }
         function Send(){
             sendmsg={
-                "type" : NORMALSTR,
-                "data" : document.getElementById("msg").value
+                "head" : NORMALSTR,
+                "body" : document.getElementById("msg").value
             };
             dbClientSocket.send(JSON.stringify(sendmsg));
         }

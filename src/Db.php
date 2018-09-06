@@ -37,7 +37,7 @@ class Db{
             FROM dbo.fn_GetPlace(4) 
             WHERE level=5)"
         );
-        $testArr = $testRes->fetch(\PDO::FETCH_ASSOC);
+        $testArr = $testRes->fetchall(\PDO::FETCH_ASSOC);
         return $testArr;
     }
 }
