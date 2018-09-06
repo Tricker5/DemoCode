@@ -25,7 +25,7 @@ class Server{
     }
 
     function onWorkerStart($server,$worker_id){
-        $db = new Db;
+        $this->db = new Db;
     }
 
     function onOpen($server, $request){
@@ -53,6 +53,14 @@ class Server{
                 }                
                 break;
             
+            case MsgLabel::DBTEST:
+                echo "收到 $fd 号客户端的测试请求...".PHP_EOL;
+                $readydata = array(
+                    "head" => MsgLabel::DBTEST,
+                    "body" => $this->db->testFetch()
+                );
+                break;
+            
 
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
@@ -63,7 +71,9 @@ class Server{
                 break;
         }
         if($readydata){
-            $this->server->push($fd, json_encode($readydata));
+            if(!$this->server->push($fd, json_encode($readydata)))
+                echo "数据包发送失败！".PHP_EOL;
+            
         }
     }
 
@@ -72,7 +82,7 @@ class Server{
     }
 
     function onFinish(){
-        
+
     }
 
 

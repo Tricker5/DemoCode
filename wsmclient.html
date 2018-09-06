@@ -5,11 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>DbClient1</title>
-    <script>
+</head>
+<body>
+    <div>
+        <input id="msg" type="text">
+        <button id="connect" onclick="dConnect();">Connect</button>
+        <button id="send" onclick="Send();">Send</button>
+        <button id="close" onclick="Close();">Close</button>
+    </div> 
+    <br> 
+    <div>
+        <button id="dbtest" onclick="dbtest();">数据库查询测试</button>
+    </div>  
+    <div id = "testdiv">
+
+    </div>
+</body>
+<script>
         var dbClientSocket;
 
         const NORMALSTR = 0;
         const MONITORARR =1;
+        const DBTEST = 2;
 
         function dConnect(){
             try{
@@ -38,7 +55,10 @@
             data = JSON.parse(msg.data);
             switch(data["head"]){
                 case NORMALSTR:
-                    alert("服务器说："+data["body"])
+                    alert("服务器说："+data["body"]);
+                    break;
+                case DBTEST:
+                    testTable(data["body"]);
                     break;
 
                 default:
@@ -62,6 +82,30 @@
             dbClientSocket.close();
             
         }
+
+        function dbtest(){
+            $data = {
+                "head" : DBTEST,
+                "body" : "请求测试！"
+            }
+            dbClientSocket.send(JSON.stringify($data));
+        }
+
+        function testTable(data){
+            var testdiv = document.getElementById("testdiv");
+            var test_table = "<table align='center' border=1 bordercolor='purple'>";
+            
+            for(var i in data){
+                test_table += "<tr align='center' height='40'>";
+                for(var j in data[i]){
+                    test_table += "<td align='center' width = '200'>"+data[i][j]+"</td>";
+                }
+                test_table += "</tr>";
+            }
+            test_table += "</table>";
+
+            testdiv.innerHTML = test_table;
+        }
         
         function jsonToStr(data){
             var str ="";
@@ -76,13 +120,4 @@
         
         
     </script>
-</head>
-<body>
-    <div>
-            <input id="msg" type="text">
-            <button id="connect" onclick="dConnect();">Connect</button>
-            <button id="send" onclick="Send();">Send</button>
-            <button id="close" onclick="Close();">Close</button>
-    </div>    
-</body>
 </html>

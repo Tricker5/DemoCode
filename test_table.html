@@ -20,13 +20,13 @@
             var row1 = document.getElementById("h").value;
             var col1 = document.getElementById("l").value;
             var div1 = document.getElementById("div1");
-            var tab = "<table border='1' bordercolor='blue' width='200' height='100'>";
+            var tab = "<table border='1' >";
             //循环行
             for(var i=1;i<=row1;i++){
                 tab+="<tr>";
                 //循环列
                 for(var j=1;j<=col1;j++){
-                    tab+="<td>单元格</td>";
+                    tab+="<td width = '200'>单元格</td>";
                 }
                 tab+="</tr>";
             }
