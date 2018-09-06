@@ -6,6 +6,7 @@ class Server{
 
     public $server;
     public $db;
+    public $clientmgr;
 
     public function __construct(){
         $this->server = new \swoole_websocket_server(Config::WSIP, Config::WSPORT);
@@ -26,10 +27,32 @@ class Server{
 
     function onWorkerStart($server,$worker_id){
         $this->db = new Db;
+        $this->clientmgr = new ClientMgr;
+        if($server->taskworker){
+
+        }
     }
 
     function onOpen($server, $request){
-        echo "与 {$request->fd} 号客户端连接成功！".PHP_EOL;
+        $fd = $request->fd;
+        echo "与 {$fd} 号客户端连接成功！".PHP_EOL;
+        
+        $conninfo = $server->getClientInfo($fd);
+        
+        //注册连接客户端
+        $taskarr = array(
+            "head" => MsgLabel::TASK_CLIENTREG,
+            "body" => array(
+                "fd" => $fd,
+                "conninfo" => $conninfo
+            )
+        );
+        $server->task($taskarr, 0);
+        $this->clientmgr->clientReg($fd, $conninfo);
+
+        echo "当前客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
+        //print_r($this->clientmgr->clients[$fd]->getConnInfo());
+
     }
     function onMessage($server, $frame){
         $fd = $frame->fd;
@@ -71,14 +94,27 @@ class Server{
                 break;
         }
         if($readydata){
-            if(!$this->server->push($fd, json_encode($readydata)))
+            if(!$server->push($fd, json_encode($readydata)))
                 echo "数据包发送失败！".PHP_EOL;
             
         }
     }
 
-    function onTask(){
+    function onTask($server, $task_id, $src_worker_id, $taskarr){
+        switch($taskarr["head"]){
+            case MsgLabel::TASK_CLIENTREG:
+                $this->clientmgr->clientReg($taskarr["body"]["fd"], $taskarr["body"]["conninfo"]);
+                //echo "当前TASK进程中客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
+                break;
+            
+            case MsgLabel::TASK_CLIENTUNREG:
+                unset($this->clientmgr->clients[$taskarr["body"]]);
+                //echo "当前TASK进程客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
+                break;
 
+            default:
+                break;
+        }
     }
 
     function onFinish(){
@@ -87,7 +123,16 @@ class Server{
 
 
     function onClose($server, $fd){
+
+        $taskarr = array(
+            "head" => MsgLabel::TASK_CLIENTUNREG,
+            "body" => $fd
+        );
+        $server->task($taskarr, 0);
+        unset($this->clientmgr->clients[$fd]);
+
         echo "$fd 号客户端关闭连接！".PHP_EOL;
+        echo "当前客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
     }
 }
 
