@@ -33,7 +33,7 @@
             <option value="265">虚拟线体9</option>
         </select>
     </div>
-    <div id = "testdiv">
+    <div id = "tablediv">
 
     </div>
 </body>
@@ -44,6 +44,7 @@
     const MONITORARR =1;
     const DBTEST = 2;
     const MOLINESET = 3;
+    const MOLINEARR = 4;
 
     function dConnect(){
         try{
@@ -76,7 +77,9 @@
             case DBTEST:
                 testTable(data["body"]);
                 break;
-
+            case MOLINEARR:
+                printarr(data["body"]);
+                break;
             default:
                 break;
         }
@@ -112,21 +115,26 @@
     }
 
     function testTable(data){
-        var testdiv = document.getElementById("testdiv");
-        var test_table = "<table align='center' border=1 bordercolor='purple'>";
+        alert(jsonToStr(data));  
+    }
+
+    function printarr(data){
+        var tablediv = document.getElementById("tablediv");
+        var table = "<table align='center' border=1 bordercolor='purple'>";
             
         for(var i in data){
-            test_table += "<tr align='center' height='40'>";
+            table += "<tr align='center' height='40'>";
             for(var j in data[i]){
-                test_table += "<td align='center' width = '200'>"+data[i][j]+"</td>";
+                table += "<td align='center' width = '200'>"+data[i][j]+"</td>";
             }
-            test_table += "</tr>";
+            table += "</tr>";
         }
-        test_table += "</table>";
+        table += "</table>";
 
-        testdiv.innerHTML = test_table;
+        tablediv.innerHTML = table;
     }
-        
+    
+    //将json对象转化成易读的字符串
     function jsonToStr(data){
         var str ="";
         for(var i in data){

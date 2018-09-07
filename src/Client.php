@@ -10,6 +10,7 @@ class Client{
     function __construct($fd, $conninfo){
         $this->fd = $fd;
         $this->conninfo = $conninfo;
+        $this->moline = null;
     }
 
     function getFd(){

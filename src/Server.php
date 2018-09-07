@@ -35,7 +35,7 @@ class Server{
         $this->db = new Db;
         $this->clientmgr = new ClientMgr;
         if($server->taskworker && $wtname === "task_worker_1"){
-            $server->tick(20000, [$this, 'tickMonitor']);
+            //$server->tick(1000, [$this, 'tickMonitor']);
         }
     }
 
@@ -153,7 +153,24 @@ class Server{
     }
 
     function tickMonitor(){
-        echo "定时监控...".PHP_EOL;
+        //echo "定时监控...".PHP_EOL;
+        foreach ($this->clientmgr->clients as $client){
+            $lineid = $client->getMoLine();
+            $fd = $client->getFd();
+            if($lineid){
+                $readydata = $this->readyData(MsgLabel::MOLINEARR, $this->db->molinearr($lineid));
+                $this->server->push($fd, $readydata);
+            }
+        }
+    }
+
+    function readyData($head, $body){
+        $readydata = array(
+            "head" => $head,
+            "body" => $body
+        );
+        $readydata = json_encode($readydata);
+        return $readydata;
     }
     
 }
