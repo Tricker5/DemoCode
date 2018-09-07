@@ -26,10 +26,16 @@ class Server{
     }
 
     function onWorkerStart($server,$worker_id){
+        if($server->taskworker)
+            $wtname = "task_worker_".$worker_id;
+        else
+            $wtname = "worker_".$worker_id;
+        //echo $wtname.PHP_EOL;
+
         $this->db = new Db;
         $this->clientmgr = new ClientMgr;
-        if($server->taskworker){
-
+        if($server->taskworker && $wtname === "task_worker_1"){
+            $server->tick(20000, [$this, 'tickMonitor']);
         }
     }
 
@@ -57,7 +63,7 @@ class Server{
     function onMessage($server, $frame){
         $fd = $frame->fd;
         $data = json_decode($frame->data, true);
-        $readydata;
+        $readydata = null;
 
         switch ($data["head"]){
             case MsgLabel::NORMALSTR:
@@ -74,8 +80,7 @@ class Server{
                         "body" => "请输入有效内容！"
                     );
                 }                
-                break;
-            
+                break; 
             case MsgLabel::DBTEST:
                 echo "收到 $fd 号客户端的测试请求...".PHP_EOL;
                 $readydata = array(
@@ -83,8 +88,19 @@ class Server{
                     "body" => $this->db->testFetch()
                 );
                 break;
-            
-
+            case MsgLabel::MOLINESET:
+                echo "配置客户端监控线体...".PHP_EOL;
+                $taskarr = array(
+                    "head" => MsgLabel::MOLINESET,
+                    "body" => array(
+                        "fd" => $fd,
+                        "lineid" => $data["body"]
+                    )
+                );
+                $server->task($taskarr, 0);
+                $this->clientmgr->setMoLine($fd, $data["body"]);
+                echo "已将 $fd 号客户端监控线体ID配置为：".$data["body"].PHP_EOL;
+                break;
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
                 $readydata = array(
@@ -108,32 +124,38 @@ class Server{
                 break;
             
             case MsgLabel::TASK_CLIENTUNREG:
-                unset($this->clientmgr->clients[$taskarr["body"]]);
+                $this->clientmgr->clientUnreg($taskarr["body"]);
                 //echo "当前TASK进程客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
-
+            case MsgLabel::MOLINESET:
+                $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["fd"]);
+                break;
             default:
                 break;
         }
     }
 
     function onFinish(){
-
+        //log;
     }
 
 
     function onClose($server, $fd){
-
         $taskarr = array(
             "head" => MsgLabel::TASK_CLIENTUNREG,
             "body" => $fd
         );
         $server->task($taskarr, 0);
-        unset($this->clientmgr->clients[$fd]);
+        $this->clientmgr->clientUnreg($fd);
 
         echo "$fd 号客户端关闭连接！".PHP_EOL;
         echo "当前客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
     }
+
+    function tickMonitor(){
+        echo "定时监控...".PHP_EOL;
+    }
+    
 }
 
 
