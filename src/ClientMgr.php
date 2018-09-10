@@ -5,7 +5,7 @@ namespace WSM;
 class ClientMgr{
     public $clients;
     public function __construct(){
-        $this->clients = [];
+        $this->clients = array();
     }
 
     public function clientReg($fd, $conninfo){
@@ -13,10 +13,13 @@ class ClientMgr{
     }
 
     public function clientUnreg($fd){
+        echo "????????UNSET!!!!!!!!!!!!".PHP_EOL;
         unset($this->clients[$fd]);
     }
 
     public function setMoLine($fd, $lineid){
+        echo "clientmgr.fd: ".$fd.PHP_EOL;
+        echo "clientmgr.lineid". $lineid.PHP_EOL;
         $this->clients[$fd]->setMoLine($lineid);
     }
 

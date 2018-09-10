@@ -35,7 +35,7 @@ class Server{
         $this->db = new Db;
         $this->clientmgr = new ClientMgr;
         if($server->taskworker && $wtname === "task_worker_1"){
-            //$server->tick(1000, [$this, 'tickMonitor']);
+            $server->tick(1000, [$this, 'tickMonitor']);
         }
     }
 
@@ -99,7 +99,7 @@ class Server{
                 );
                 $server->task($taskarr, 0);
                 $this->clientmgr->setMoLine($fd, $data["body"]);
-                echo "已将 $fd 号客户端监控线体ID配置为：".$data["body"].PHP_EOL;
+                echo "已将 $fd 号客户端监控线体ID配置为：".$this->clientmgr->clients[$fd]->getMoLine().PHP_EOL;
                 break;
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
@@ -128,7 +128,7 @@ class Server{
                 //echo "当前TASK进程客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
             case MsgLabel::MOLINESET:
-                $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["fd"]);
+                $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["lineid"]);
                 break;
             default:
                 break;
@@ -141,13 +141,14 @@ class Server{
 
 
     function onClose($server, $fd){
+        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
         $taskarr = array(
             "head" => MsgLabel::TASK_CLIENTUNREG,
             "body" => $fd
         );
         $server->task($taskarr, 0);
         $this->clientmgr->clientUnreg($fd);
-
+        
         echo "$fd 号客户端关闭连接！".PHP_EOL;
         echo "当前客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
     }
@@ -158,6 +159,7 @@ class Server{
             $lineid = $client->getMoLine();
             $fd = $client->getFd();
             if($lineid){
+                echo $lineid.' ';
                 $readydata = $this->readyData(MsgLabel::MOLINEARR, $this->db->molinearr($lineid));
                 $this->server->push($fd, $readydata);
             }

@@ -78,6 +78,7 @@
                 testTable(data["body"]);
                 break;
             case MOLINEARR:
+                //console.log("WOW! ");
                 printarr(data["body"]);
                 break;
             default:
@@ -121,7 +122,7 @@
     function printarr(data){
         var tablediv = document.getElementById("tablediv");
         var table = "<table align='center' border=1 bordercolor='purple'>";
-            
+        console.log("MEOW! ")            
         for(var i in data){
             table += "<tr align='center' height='40'>";
             for(var j in data[i]){
@@ -132,6 +133,7 @@
         table += "</table>";
 
         tablediv.innerHTML = table;
+        table = "";
     }
     
     //将json对象转化成易读的字符串
