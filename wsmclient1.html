@@ -122,11 +122,12 @@
     function printarr(data){
         var tablediv = document.getElementById("tablediv");
         var table = "<table align='center' border=1 bordercolor='purple'>";
-        console.log("MEOW! ")            
+        //console.log("MEOW! ")            
         for(var i in data){
             table += "<tr align='center' height='40'>";
             for(var j in data[i]){
                 table += "<td align='center' width = '200'>"+data[i][j]+"</td>";
+                //console.log("ohhhhh!");
             }
             table += "</tr>";
         }

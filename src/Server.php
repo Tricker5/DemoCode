@@ -7,6 +7,7 @@ class Server{
     public $server;
     public $db;
     public $clientmgr;
+    public $tick_i;
 
     public function __construct(){
         $this->server = new \swoole_websocket_server(Config::WSIP, Config::WSPORT);
@@ -32,8 +33,12 @@ class Server{
             $wtname = "worker_".$worker_id;
         //echo $wtname.PHP_EOL;
 
-        $this->db = new Db;
+        
+        //if($this->db->getNewDb() === MsgLabel::DB_CONN_ERROR)
+            //$this->server->shutdown();
         $this->clientmgr = new ClientMgr;
+        $this->db = new Db;
+        $this->tick_i = 0;
         if($server->taskworker && $wtname === "task_worker_1"){
             $server->tick(1000, [$this, 'tickMonitor']);
         }
@@ -141,7 +146,7 @@ class Server{
 
 
     function onClose($server, $fd){
-        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
+//        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
         $taskarr = array(
             "head" => MsgLabel::TASK_CLIENTUNREG,
             "body" => $fd
@@ -158,12 +163,22 @@ class Server{
         foreach ($this->clientmgr->clients as $client){
             $lineid = $client->getMoLine();
             $fd = $client->getFd();
+
             if($lineid){
-                echo $lineid.' ';
-                $readydata = $this->readyData(MsgLabel::MOLINEARR, $this->db->molinearr($lineid));
-                $this->server->push($fd, $readydata);
+                ++$this->tick_i;
+                echo "line $lineid: {$this->tick_i}; ";
+                $moarr = $this->db->molinearr($lineid);
+                if($moarr){
+                    echo "arr ".PHP_EOL;
+                    $readydata = $this->readyData(MsgLabel::MOLINEARR, $moarr);
+                    $this->server->push($fd, $readydata);
+                }
+                else
+                    echo "no arr; ".PHP_EOL;
             }
         }
+
+//        $this->db->testInsert(++$this->tick_i);
     }
 
     function readyData($head, $body){

@@ -13,13 +13,13 @@ class ClientMgr{
     }
 
     public function clientUnreg($fd){
-        echo "????????UNSET!!!!!!!!!!!!".PHP_EOL;
+//        echo "????????UNSET!!!!!!!!!!!!".PHP_EOL;
         unset($this->clients[$fd]);
     }
 
     public function setMoLine($fd, $lineid){
-        echo "clientmgr.fd: ".$fd.PHP_EOL;
-        echo "clientmgr.lineid". $lineid.PHP_EOL;
+//        echo "clientmgr.fd: ".$fd.PHP_EOL;
+//        echo "clientmgr.lineid". $lineid.PHP_EOL;
         $this->clients[$fd]->setMoLine($lineid);
     }
 

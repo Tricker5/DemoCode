@@ -4,18 +4,22 @@ require __DIR__.'/vendor/autoload.php';
 
 use WSM\Db;
 
-
+$conn = microtime(true);
 $testDb = new Db;
-print_r($testDb->testFetch());
+$conn = microtime(true) - $conn;
+echo "connect time: ".$conn.PHP_EOL;
+
+echo "before sleep... ".PHP_EOL;
+//sleep(10);
+echo "after sleep... ".PHP_EOL;
+$start = microtime(true);
 
 
-/*
-$pdo = new \PDO("sqlsrv: Server = 10.0.2.2, 1433;
-                             Database = testdb", 
-                            "sa", 
-                            "abc123456");
 
-$pdores = $pdo->query("SELECT * FROM testdb.dbo.testTable");
-print_r($pdores->fetchall(\PDO::FETCH_ASSOC));
-*/
+if($testarr = $testDb->testFetch())
+    print_r($testarr = $testDb->testFetch());
+
+$start = microtime(true) - $start;
+echo $start.PHP_EOL;
+
 ?>
