@@ -68,54 +68,37 @@ class Server{
     function onMessage($server, $frame){
         $fd = $frame->fd;
         $data = json_decode($frame->data, true);
-        $readydata = null;
+        $readyarr = null;
 
+        //判断message数据头部分head类型并处理
         switch ($data["head"]){
             case MsgLabel::NORMALSTR:
                 if($data["body"]){
                     echo "收到来自 $fd 号客户端的信息：".$data["body"].PHP_EOL;
-                    $readydata = array(
-                        "head" => MsgLabel::NORMALSTR,
-                        "body" => "已收到 ：".$data["body"]
-                    );
+                    $readyarr = $this->readyArr(MsgLabel::NORMALSTR,  "已收到 ：".$data["body"]);
                 }else{
                     echo "收到来自 $fd 号客户端的空白信息".PHP_EOL;
-                    $readydata = array(
-                        "head" => MsgLabel::NORMALSTR,
-                        "body" => "请输入有效内容！"
-                    );
+                    $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "请输入有效内容！");
                 }                
                 break; 
             case MsgLabel::DBTEST:
                 echo "收到 $fd 号客户端的测试请求...".PHP_EOL;
-                $readydata = array(
-                    "head" => MsgLabel::DBTEST,
-                    "body" => $this->db->testFetch()
-                );
+                $readyarr = $this->readyArr(MsgLabel::DBTEST, $this->db->testFetch());
                 break;
             case MsgLabel::MOLINESET:
                 echo "配置客户端监控线体...".PHP_EOL;
-                $taskarr = array(
-                    "head" => MsgLabel::MOLINESET,
-                    "body" => array(
-                        "fd" => $fd,
-                        "lineid" => $data["body"]
-                    )
-                );
+                $taskarr = $this->readyArr(MsgLabel::MOLINESET, array("fd" => $fd, "lineid" => $data["body"]));
                 $server->task($taskarr, 0);
                 $this->clientmgr->setMoLine($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$this->clientmgr->clients[$fd]->getMoLine().PHP_EOL;
                 break;
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
-                $readydata = array(
-                    "head" => MsgLabel::NORMALSTR,
-                    "body" => "信息无法识别！"
-                );
+                $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "信息无法识别！");
                 break;
         }
-        if($readydata){
-            if(!$server->push($fd, json_encode($readydata)))
+        if($readyarr){
+            if(!$server->push($fd, json_encode($readyarr)))
                 echo "数据包发送失败！".PHP_EOL;
             
         }
@@ -147,10 +130,7 @@ class Server{
 
     function onClose($server, $fd){
 //        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
-        $taskarr = array(
-            "head" => MsgLabel::TASK_CLIENTUNREG,
-            "body" => $fd
-        );
+        $tastarr = $this->readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
         $server->task($taskarr, 0);
         $this->clientmgr->clientUnreg($fd);
         
@@ -170,7 +150,7 @@ class Server{
                 $moarr = $this->db->molinearr($lineid);
                 if($moarr){
                     echo "arr ".PHP_EOL;
-                    $readydata = $this->readyData(MsgLabel::MOLINEARR, $moarr);
+                    $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $moarr));
                     $this->server->push($fd, $readydata);
                 }
                 else
@@ -181,13 +161,13 @@ class Server{
 //        $this->db->testInsert(++$this->tick_i);
     }
 
-    function readyData($head, $body){
-        $readydata = array(
+    function readyArr($head, $body){
+        $readyarr = array(
             "head" => $head,
             "body" => $body
         );
-        $readydata = json_encode($readydata);
-        return $readydata;
+//        $readydata = json_encode($readydata);
+        return $readyarr;
     }
     
 }

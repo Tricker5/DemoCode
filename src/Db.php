@@ -47,14 +47,6 @@ class Db{
     }
 
     public function molinearr($lineid){    
-        //echo ' '.substr($molinesql, -41, -27).PHP_EOL;
-        //$molinerst = $this->Db->query($molinesql);
-        /*
-        if($this->molinepre)
-            echo "goodpre; ";
-        if($exearr = array($lineid))
-            echo "good exearr: {$exearr[0]}; "; 
-        */
         try{
             $molinepre = $this->Db->prepare($this->molinesql);
             if($molinepre->bindValue(1, $lineid))
@@ -69,8 +61,7 @@ class Db{
             $this->getNewDb();
             //exit;
         }
-        
-        
+              
         $typeconvertarr = array(
             '8' => '高阻',
             '9' => '手环',
@@ -93,22 +84,6 @@ class Db{
     function testFetch(){
 
         try{
-            /*
-            $testrst = $this->Db->query("SELECT TOP 50
-            ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
-            FROM mpoint_realtime_status AS mrs
-            LEFT JOIN mpoint AS m
-            ON mrs.mpoint_id = m.id
-            LEFT JOIN place AS p
-            ON m.pid = p.id
-            LEFT JOIN channels_info AS ci
-            ON ci.id = m.ciid
-            LEFT JOIN devices_info AS di
-            ON ci.device_id = di.id                 
-            WHERE p.id in(SELECT id
-            FROM dbo.fn_GetPlace(4) 
-            WHERE level=5)");
-            */
 
             $testpre = $this->Db->prepare("SELECT TOP 50
             ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
