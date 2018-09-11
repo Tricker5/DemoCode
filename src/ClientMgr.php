@@ -17,6 +17,10 @@ class ClientMgr{
         unset($this->clients[$fd]);
     }
 
+    public function setMoType($fd, $motype){
+        $this->clients[$fd]->setMoType($motype);
+    }
+
     public function setMoLine($fd, $lineid){
 //        echo "clientmgr.fd: ".$fd.PHP_EOL;
 //        echo "clientmgr.lineid". $lineid.PHP_EOL;

@@ -80,11 +80,21 @@ class Server{
                     echo "收到来自 $fd 号客户端的空白信息".PHP_EOL;
                     $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "请输入有效内容！");
                 }                
-                break; 
+                break;
+
             case MsgLabel::DBTEST:
                 echo "收到 $fd 号客户端的测试请求...".PHP_EOL;
                 $readyarr = $this->readyArr(MsgLabel::DBTEST, $this->db->testFetch());
                 break;
+
+            case MsgLabel::MOTYPESET:
+                echo "配置客户端监控类型...".PHP_EOL;
+                $taskarr = $this->readyArr(MsgLabel::MOTYPESET, array("fd" => $fd, "motype" => $data["body"]));
+                $server->task($taskarr, 0);
+                $this->clientmgr->setMoType($fd, $data["body"]);
+                echo "已将 $fd 号客户端监控类型配置为：".$this->clientmgr->clients[$fd]->getMoType().PHP_EOL;
+                break;
+
             case MsgLabel::MOLINESET:
                 echo "配置客户端监控线体...".PHP_EOL;
                 $taskarr = $this->readyArr(MsgLabel::MOLINESET, array("fd" => $fd, "lineid" => $data["body"]));
@@ -92,6 +102,7 @@ class Server{
                 $this->clientmgr->setMoLine($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$this->clientmgr->clients[$fd]->getMoLine().PHP_EOL;
                 break;
+
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
                 $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "信息无法识别！");
@@ -115,9 +126,15 @@ class Server{
                 $this->clientmgr->clientUnreg($taskarr["body"]);
                 //echo "当前TASK进程客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
+
+            case MsgLabel::MOTYPESET:
+                $this->clientmgr->setMoType($taskarr["body"]["fd"], $taskarr["body"]["motype"]);
+                break;
+
             case MsgLabel::MOLINESET:
                 $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["lineid"]);
                 break;
+
             default:
                 break;
         }
@@ -143,24 +160,22 @@ class Server{
        // echo count($this->clientmgr->clients).PHP_EOL;
         foreach ($this->clientmgr->clients as $client){
             if(isset($client)){
-                $lineid = $client->getMoLine();
-                $fd = $client->getFd();
-
-                if($lineid){
-                    ++$this->tick_i;
-                    //echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
-                    $moarr = $this->db->molinearr($lineid);
-                    if($moarr){
-                        //echo "arr ".PHP_EOL;
-                        $bodyarr = array(
-                            "time" => date("Y-m-d, H:i:s"),
-                            "moarr" => $moarr
-                        );
-                        $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
-                        $this->server->push($fd, $readydata);
+                if($client->getMoType()=="line"){
+                    $lineid = $client->getMoLine();
+                    $fd = $client->getFd();   
+                    if($lineid){
+                        //++$this->tick_i;
+                        //echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        $moarr = $this->db->molinearr($lineid);
+                        if($moarr){
+                            $bodyarr = array(
+                                "time" => date("Y-m-d, H:i:s"),
+                                "moarr" => $moarr
+                            );
+                            $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
+                            $this->server->push($fd, $readydata);
+                        }
                     }
-                    //else
-                        //echo "no arr; ".PHP_EOL;
                 }
             }
             
