@@ -130,7 +130,7 @@ class Server{
 
     function onClose($server, $fd){
 //        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
-        $tastarr = $this->readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
+        $taskarr = $this->readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
         $server->task($taskarr, 0);
         $this->clientmgr->clientUnreg($fd);
         
@@ -140,22 +140,30 @@ class Server{
 
     function tickMonitor(){
         //echo "定时监控...".PHP_EOL;
+       // echo count($this->clientmgr->clients).PHP_EOL;
         foreach ($this->clientmgr->clients as $client){
-            $lineid = $client->getMoLine();
-            $fd = $client->getFd();
+            if(isset($client)){
+                $lineid = $client->getMoLine();
+                $fd = $client->getFd();
 
-            if($lineid){
-                ++$this->tick_i;
-                echo "line $lineid: {$this->tick_i}; ";
-                $moarr = $this->db->molinearr($lineid);
-                if($moarr){
-                    echo "arr ".PHP_EOL;
-                    $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $moarr));
-                    $this->server->push($fd, $readydata);
+                if($lineid){
+                    ++$this->tick_i;
+                    //echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                    $moarr = $this->db->molinearr($lineid);
+                    if($moarr){
+                        //echo "arr ".PHP_EOL;
+                        $bodyarr = array(
+                            "time" => date("Y-m-d, H:i:s"),
+                            "moarr" => $moarr
+                        );
+                        $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
+                        $this->server->push($fd, $readydata);
+                    }
+                    //else
+                        //echo "no arr; ".PHP_EOL;
                 }
-                else
-                    echo "no arr; ".PHP_EOL;
             }
+            
         }
 
 //        $this->db->testInsert(++$this->tick_i);

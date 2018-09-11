@@ -12,7 +12,7 @@ class Db{
         $this->getNewDb();
         
         $this->molinesql = 
-            "SELECT TOP 50
+            "SELECT 
             ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
             FROM mpoint_realtime_status AS mrs
             LEFT JOIN mpoint AS m
@@ -26,7 +26,6 @@ class Db{
             WHERE p.id in(SELECT id
             FROM dbo.fn_GetPlace(?) 
             WHERE level=5)";
-        
     }
 
     function getNewDb(){
@@ -38,6 +37,7 @@ class Db{
                 Config::DBUPWD
             );
             $this->Db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->Db->setAttribute(\PDO::SQLSRV_ATTR_QUERY_TIMEOUT, 1);
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
             return MsgLabel::DB_CONN_ERROR;
@@ -49,13 +49,13 @@ class Db{
     public function molinearr($lineid){    
         try{
             $molinepre = $this->Db->prepare($this->molinesql);
-            if($molinepre->bindValue(1, $lineid))
-                echo "goodbind; ";
-            if($molinepre->execute())
-                echo "goodexe; ";
-            $molinearr = $molinepre->fetchall(); 
-            if($molinearr)
-                echo "goodfet; ";
+            $molinepre->bindValue(1, $lineid);
+                //echo "goodbind; ";
+            $molinepre->execute();
+                //echo "goodexe; ";
+            $molinearr = $molinepre->fetchall(\PDO::FETCH_ASSOC); 
+            //if($molinearr)
+                //echo "goodfet; ";
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
             $this->getNewDb();
@@ -76,7 +76,7 @@ class Db{
             $typename = $typeconvertarr[$typecode] ?: '';//若为null设为空字符串
             $molinearr[$i]["type"] = $typename;
         }
-
+        
         return $molinearr;
     }
 
@@ -84,8 +84,7 @@ class Db{
     function testFetch(){
 
         try{
-
-            $testpre = $this->Db->prepare("SELECT TOP 50
+            $testpre = $this->Db->prepare("SELECT TOP 10
             ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
             FROM mpoint_realtime_status AS mrs
             LEFT JOIN mpoint AS m
@@ -102,9 +101,7 @@ class Db{
            //,array(\PDO::ERRMODE_EXCEPTION)
             );
             $testpre->execute();
-
-
-           $testarr = $testpre->fetch(\PDO::FETCH_ASSOC);
+            $testarr = $testpre->fetchall(\PDO::FETCH_ASSOC);
             return $testarr;
 
         }catch(\PDOException $e){
