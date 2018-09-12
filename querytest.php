@@ -21,7 +21,6 @@ $server->on("workerstart", function() use($server){
         $server->tick(1000, function() use($db, &$i, $server){
             echo ++$i." : ";
             try{
-                
                 if($pre = $db->prepare("SELECT TOP 10
                     ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
                     FROM mpoint_realtime_status AS mrs
@@ -60,7 +59,7 @@ $server->on("message", function(){});
 $server->on("close", function(){});
 $server->on("task", function(){});
 $server->on("finish",function(){});
-    
+
 $server->start();
 
 ?>

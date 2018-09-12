@@ -32,7 +32,7 @@ class Server{
             $this->wtname = "task_worker_".$worker_id;
         else
             $this->wtname = "worker_".$worker_id;
-        //echo $wtname.PHP_EOL;
+        //echo $this->wtname.PHP_EOL;
 
         
         //if($this->db->getNewDb() === MsgLabel::DB_CONN_ERROR)
@@ -40,7 +40,7 @@ class Server{
         $this->clientmgr = new ClientMgr;
         $this->db = new Db;
         $this->tick_i = 0;
-        if($server->taskworker && $wtname === "task_worker_1"){
+        if(!$server->taskworker&&$worker_id === 0 ){
             $server->tick(1000, [$this, 'tickMonitor']);
         }
     }
@@ -136,6 +136,32 @@ class Server{
                 $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["lineid"]);
                 break;
 
+            case MsgLabel::TASK_MOLINE:
+                foreach ($this->clientmgr->clients as $client){
+                    if(isset($client)){
+                        //echo $client->getMoType().PHP_EOL;
+                        if($client->getMoType()=="line"){
+                            $lineid = $client->getMoLine();
+                            $fd = $client->getFd(); 
+                            //echo $client->getMoLine().PHP_EOL;  
+                            if($lineid){
+                                ++$this->tick_i;
+                                echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                                $moarr = $this->db->molinearr($lineid);
+                                if($moarr){
+                                    $bodyarr = array(
+                                        "time" => date("Y-m-d, H:i:s"),
+                                        "moarr" => $moarr
+                                    );
+                                    $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
+                                    $this->server->push($fd, $readydata);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+
             default:
                 break;
         }
@@ -157,35 +183,14 @@ class Server{
     }
 
     function tickMonitor(){
+        $taskarr = $this->readyArr(MsgLabel::TASK_MOLINE);
+        $this->server->task($taskarr, 0);
         //echo "定时监控...".PHP_EOL;
-       // echo count($this->clientmgr->clients).PHP_EOL;
-        foreach ($this->clientmgr->clients as $client){
-            if(isset($client)){
-                if($client->getMoType()=="line"){
-                    $lineid = $client->getMoLine();
-                    $fd = $client->getFd();   
-                    if($lineid){
-                        ++$this->tick_i;
-                        echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
-                        $moarr = $this->db->molinearr($lineid);
-                        if($moarr){
-                            $bodyarr = array(
-                                "time" => date("Y-m-d, H:i:s"),
-                                "moarr" => $moarr
-                            );
-                            $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
-                            $this->server->push($fd, $readydata);
-                        }
-                    }
-                }
-            }
-            
-        }
-
+        //echo count($this->clientmgr->clients).PHP_EOL;
 //        $this->db->testInsert(++$this->tick_i);
     }
 
-    function readyArr($head, $body){
+    function readyArr($head = null, $body = null){
         $readyarr = array(
             "head" => $head,
             "body" => $body
