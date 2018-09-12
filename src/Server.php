@@ -8,6 +8,7 @@ class Server{
     public $db;
     public $clientmgr;
     public $tick_i;
+    public $wtname;
 
     public function __construct(){
         $this->server = new \swoole_websocket_server(Config::WSIP, Config::WSPORT);
@@ -28,9 +29,9 @@ class Server{
 
     function onWorkerStart($server,$worker_id){
         if($server->taskworker)
-            $wtname = "task_worker_".$worker_id;
+            $this->wtname = "task_worker_".$worker_id;
         else
-            $wtname = "worker_".$worker_id;
+            $this->wtname = "worker_".$worker_id;
         //echo $wtname.PHP_EOL;
 
         
@@ -164,8 +165,8 @@ class Server{
                     $lineid = $client->getMoLine();
                     $fd = $client->getFd();   
                     if($lineid){
-                        //++$this->tick_i;
-                        //echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        ++$this->tick_i;
+                        echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
                         $moarr = $this->db->molinearr($lineid);
                         if($moarr){
                             $bodyarr = array(
