@@ -7,6 +7,7 @@ class Client{
     private $conninfo;
     private $motype;
     private $moline;
+    private $mostation;
 
     function __construct($fd, $conninfo){
         $this->fd = $fd;
@@ -38,6 +39,13 @@ class Client{
         $this->moline = $lineid;
     }
     
+    function getMoStation(){
+        return $this->mostation;
+    }
+
+    function setMoStation($stationid){
+        $this->mostation = $stationid;
+    }
 
 
 }

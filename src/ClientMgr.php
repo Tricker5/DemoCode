@@ -27,6 +27,10 @@ class ClientMgr{
         $this->clients[$fd]->setMoLine($lineid);
     }
 
+    public function setMoStation($fd, $stationid){
+        $this->clients[$fd]->setMoStation($stationid);
+    }
+
 }
 
 

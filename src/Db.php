@@ -4,8 +4,9 @@ namespace WSM;
 
 class Db{
 
-    public $Db;
+    public $db;
     public $molinesql;
+    public $mostationsql;
 
     public function __construct(){
         
@@ -26,18 +27,31 @@ class Db{
             WHERE p.id in(SELECT id
             FROM dbo.fn_GetPlace(?) 
             WHERE level=5)";
+        $this->mostationsql = 
+            "SELECT p.id as stationId, mrs.raw_status as status, m.id as mpoint_id, m.name, d.sn, c.slot, c.port, c.type
+            from mpoint_realtime_status as mrs
+            left join mpoint as m
+            on mrs.id = m.id
+            left join channels_info as c
+            on m.ciid = c.id
+            left join place as p
+            on m.pid = p.id
+            left join devices_info as d
+            on c.device_id = d.id
+            where p.id in 
+            (select id from dbo.fn_GetPlace(?) where level = 5) ";
     }
 
     function getNewDb(){
         try{
-            $this->Db = new \PDO(
+            $this->db = new \PDO(
                 "sqlsrv: Server = ".Config::DBHOST.
                 "; Database = ".Config::DBNAME,
                 Config::DBUNAME,
                 Config::DBUPWD
             );
-            $this->Db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->Db->setAttribute(\PDO::SQLSRV_ATTR_QUERY_TIMEOUT, 1);
+            $this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->db->setAttribute(\PDO::SQLSRV_ATTR_QUERY_TIMEOUT, 1);
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
             return MsgLabel::DB_CONN_ERROR;
@@ -46,15 +60,28 @@ class Db{
 
     }
 
-    public function molinearr($lineid){    
+    public function moarr($motype, $id){
+        $mosql = null;
+        switch($motype){
+            case MsgLabel::TASK_MOLINE:
+                $mosql = $this->molinesql; 
+                break;
+
+            case MsgLabel::TASK_MOSTATION:
+                $mosql = $this->mostationsql;
+                break;
+
+            default:
+                break;
+        }    
         try{
-            $molinepre = $this->Db->prepare($this->molinesql);
-            $molinepre->bindValue(1, $lineid);
+            $mopre = $this->db->prepare($mosql);
+            $mopre->bindValue(1, $id);
                 //echo "goodbind; ";
-            $molinepre->execute();
+            $mopre->execute();
                 //echo "goodexe; ";
-            $molinearr = $molinepre->fetchall(\PDO::FETCH_ASSOC); 
-            //if($molinearr)
+            $moarr = $mopre->fetchall(\PDO::FETCH_ASSOC); 
+            //if($moarr)
                 //echo "goodfet; ";
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
@@ -62,75 +89,27 @@ class Db{
             //exit;
         }
               
-        $typeconvertarr = array(
-            '8' => '高阻',
-            '9' => '手环',
-            '10' => '平衡电压',
-            '11' => '温度',
-            '12' => '低阻',
-            '13' => '温度',
-        );
-
-        for($i = 0; $i < sizeof($molinearr); $i++){
-            $typecode = $molinearr[$i]["type"];
-            $typename = $typeconvertarr[$typecode] ?: '';//若为null设为空字符串
-            $molinearr[$i]["type"] = $typename;
-        }
+       $moarr = CodeConvert::typeConvert($moarr);
+       $moarr = CodeConvert::statusConvert($moarr);
         
-        return $molinearr;
+        return $moarr;
     }
 
     //测试专用
     function testFetch(){
-
         try{
-            $testpre = $this->Db->prepare("SELECT TOP 10
-            ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
-            FROM mpoint_realtime_status AS mrs
-            LEFT JOIN mpoint AS m
-            ON mrs.mpoint_id = m.id
-            LEFT JOIN place AS p
-            ON m.pid = p.id
-            LEFT JOIN channels_info AS ci
-            ON ci.id = m.ciid
-            LEFT JOIN devices_info AS di
-            ON ci.device_id = di.id                 
-            WHERE p.id in(SELECT id
-            FROM dbo.fn_GetPlace(4) 
-            WHERE level=5)"
+            $testpre = $this->db->prepare($this->molinesql);
            //,array(\PDO::ERRMODE_EXCEPTION)
-            );
+            $testpre->bindValue(1, 4);
             $testpre->execute();
             $testarr = $testpre->fetchall(\PDO::FETCH_ASSOC);
             return $testarr;
-
-        }catch(\PDOException $e){
-            var_dump($e->errorInfo);
-            $this->getNewDb();
-            //exit;
-        }
-        //$this->molinepre->execute(array(4));        
-        //$testArr = $this->molinepre->fetchall(\PDO::FETCH_ASSOC);
-        //return $testArr;
-    }
-
-    function testInsert($id){
-        echo $id.": ";
-        try{
-        $insertpre = $this->Db->prepare(
-            "INSERT INTO kaifaiot_dev_gj.dbo.testTable (id) VALUES (?) "
-        );
-        if($insertpre->bindValue(1, $id))
-            echo "goodbind ";
-        if($insertpre->execute())
-            echo "goodexe ".PHP_EOL;
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
             $this->getNewDb();
             //exit;
         }
     }
-
 
 }
 

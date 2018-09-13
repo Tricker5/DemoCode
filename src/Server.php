@@ -27,7 +27,7 @@ class Server{
 
     }
 
-    function onWorkerStart($server,$worker_id){
+    function onWorkerStart($server,$worker_id){   
         if($server->taskworker)
             $this->wtname = "task_worker_".$worker_id;
         else
@@ -41,6 +41,7 @@ class Server{
         $this->db = new Db;
         $this->tick_i = 0;
         if(!$server->taskworker&&$worker_id === 0 ){
+            echo "新进程开启！".PHP_EOL;
             $server->tick(1000, [$this, 'tickMonitor']);
         }
     }
@@ -103,6 +104,14 @@ class Server{
                 $this->clientmgr->setMoLine($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$this->clientmgr->clients[$fd]->getMoLine().PHP_EOL;
                 break;
+            
+            case MsgLabel::MOSTATIONSET:
+                echo "配置客户端监控工位...".PHP_EOL;
+                $taskarr = $this->readyArr(MsgLabel::MOSTATIONSET, array("fd" => $fd, "stationid" => $data["body"]));
+                $server->task($taskarr, 0);
+                $this->clientmgr->setMoStation($fd, $data["body"]);
+                echo "已将 $fd 号客户端监控工位ID配置为：".$this->clientmgr->clients[$fd]->getMoStation().PHP_EOL;
+                break;
 
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
@@ -117,9 +126,10 @@ class Server{
     }
 
     function onTask($server, $task_id, $src_worker_id, $taskarr){
+        $fd = $taskarr["body"]["fd"] ?: null;
         switch($taskarr["head"]){
             case MsgLabel::TASK_CLIENTREG:
-                $this->clientmgr->clientReg($taskarr["body"]["fd"], $taskarr["body"]["conninfo"]);
+                $this->clientmgr->clientReg($fd, $taskarr["body"]["conninfo"]);
                 //echo "当前TASK进程中客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
             
@@ -129,36 +139,41 @@ class Server{
                 break;
 
             case MsgLabel::MOTYPESET:
-                $this->clientmgr->setMoType($taskarr["body"]["fd"], $taskarr["body"]["motype"]);
+                $this->clientmgr->setMoType($fd, $taskarr["body"]["motype"]);
                 break;
 
             case MsgLabel::MOLINESET:
-                $this->clientmgr->setMoLine($taskarr["body"]["fd"], $taskarr["body"]["lineid"]);
+                $this->clientmgr->setMoLine($fd, $taskarr["body"]["lineid"]);
+                break;
+            
+            case MsgLabel::MOSTATIONSET:
+                $this->clientmgr->setMoStation($fd, $taskarr["body"]["stationid"]);
                 break;
 
-            case MsgLabel::TASK_MOLINE:
-                foreach ($this->clientmgr->clients as $client){
-                    if(isset($client)){
-                        //echo $client->getMoType().PHP_EOL;
-                        if($client->getMoType()=="line"){
-                            $lineid = $client->getMoLine();
-                            $fd = $client->getFd(); 
-                            //echo $client->getMoLine().PHP_EOL;  
-                            if($lineid){
-                                ++$this->tick_i;
-                                echo "客户端ID：{$client->getFd()}；\t线体ID：{$lineid}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
-                                $moarr = $this->db->molinearr($lineid);
-                                if($moarr){
-                                    $bodyarr = array(
-                                        "time" => date("Y-m-d, H:i:s"),
-                                        "moarr" => $moarr
-                                    );
-                                    $readydata = json_encode($this->readyArr(MsgLabel::MOLINEARR, $bodyarr));
-                                    $this->server->push($fd, $readydata);
-                                }
-                            }
-                        }
-                    }
+            case MsgLabel::TASK_MONITOR:
+                $moarr;
+                switch($taskarr["body"]["motype"]){
+                    case MsgLabel::TASK_MOLINE:
+                        ++$this->tick_i;
+                        echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        $moarr = $this->db->moarr(MsgLabel::TASK_MOLINE, $taskarr["body"]["moid"]);
+                        break;
+                    case MsgLabel::TASK_MOSTATION:
+                        ++$this->tick_i;
+                        echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        $moarr = $this->db->moarr(MsgLabel::TASK_MOSTATION, $taskarr["body"]["moid"]);
+                        break;
+                    default:
+                        break;    
+                }
+                if($moarr){
+                    $bodyarr = array(
+                        "time" => date("Y-m-d, H:i:s"),
+                        "motype" => $taskarr["body"]["motype"],
+                        "moarr" => $moarr
+                    );
+                    $readydata = json_encode($this->readyArr(MsgLabel::MOARR, $bodyarr));
+                    $this->server->push($fd, $readydata);
                 }
                 break;
 
@@ -183,11 +198,34 @@ class Server{
     }
 
     function tickMonitor(){
-        $taskarr = $this->readyArr(MsgLabel::TASK_MOLINE);
-        $this->server->task($taskarr, 0);
-        //echo "定时监控...".PHP_EOL;
-        //echo count($this->clientmgr->clients).PHP_EOL;
-//        $this->db->testInsert(++$this->tick_i);
+        foreach($this->clientmgr->clients as $client){
+            $fd = $client->getFd();
+            //echo $fd.PHP_EOL;
+            $motype = null;
+            $moid = null;
+            switch($client->getMoType()){
+                case "line":
+                    $motype = MsgLabel::TASK_MOLINE;
+                    $moid = $client->getMoLine() ?: null;//若$client->getMoLine()有值，则赋值，否则为null
+                    break;
+                case "station":
+                    $motype = MsgLabel::TASK_MOSTATION;
+                    $moid = $client->getMoStation() ?: null;
+                    break;
+                default:
+                    break; 
+            }
+//            echo "motype: ".$motype."; moid: ".$moid.PHP_EOL;
+            if($motype !== null && $moid !== null){
+                $moarray = array(
+                    "fd" => $fd,
+                    "motype" => $motype,
+                    "moid" => $moid
+                );
+                $taskarr = $this->readyArr(MsgLabel::TASK_MONITOR, $moarray);
+                $this->server->task($taskarr, 0);
+            }
+        }
     }
 
     function readyArr($head = null, $body = null){
