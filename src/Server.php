@@ -77,21 +77,21 @@ class Server{
             case MsgLabel::NORMALSTR:
                 if($data["body"]){
                     echo "收到来自 $fd 号客户端的信息：".$data["body"].PHP_EOL;
-                    $readyarr = $this->readyArr(MsgLabel::NORMALSTR,  "已收到 ：".$data["body"]);
+                    $readyarr = Utils::readyArr(MsgLabel::NORMALSTR,  "已收到 ：".$data["body"]);
                 }else{
                     echo "收到来自 $fd 号客户端的空白信息".PHP_EOL;
-                    $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "请输入有效内容！");
+                    $readyarr = Utils::readyArr(MsgLabel::NORMALSTR, "请输入有效内容！");
                 }                
                 break;
 
             case MsgLabel::DBTEST:
                 echo "收到 $fd 号客户端的测试请求...".PHP_EOL;
-                $readyarr = $this->readyArr(MsgLabel::DBTEST, $this->db->testFetch());
+                $readyarr = Utils::readyArr(MsgLabel::DBTEST, $this->db->testFetch());
                 break;
 
             case MsgLabel::MOTYPESET:
                 echo "配置客户端监控类型...".PHP_EOL;
-                $taskarr = $this->readyArr(MsgLabel::MOTYPESET, array("fd" => $fd, "motype" => $data["body"]));
+                $taskarr = Utils::readyArr(MsgLabel::MOTYPESET, array("fd" => $fd, "motype" => $data["body"]));
                 $server->task($taskarr, 0);
                 $this->clientmgr->setMoType($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控类型配置为：".$this->clientmgr->clients[$fd]->getMoType().PHP_EOL;
@@ -99,7 +99,7 @@ class Server{
 
             case MsgLabel::MOLINESET:
                 echo "配置客户端监控线体...".PHP_EOL;
-                $taskarr = $this->readyArr(MsgLabel::MOLINESET, array("fd" => $fd, "lineid" => $data["body"]));
+                $taskarr = Utils::readyArr(MsgLabel::MOLINESET, array("fd" => $fd, "lineid" => $data["body"]));
                 $server->task($taskarr, 0);
                 $this->clientmgr->setMoLine($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$this->clientmgr->clients[$fd]->getMoLine().PHP_EOL;
@@ -107,7 +107,7 @@ class Server{
             
             case MsgLabel::MOSTATIONSET:
                 echo "配置客户端监控工位...".PHP_EOL;
-                $taskarr = $this->readyArr(MsgLabel::MOSTATIONSET, array("fd" => $fd, "stationid" => $data["body"]));
+                $taskarr = Utils::readyArr(MsgLabel::MOSTATIONSET, array("fd" => $fd, "stationid" => $data["body"]));
                 $server->task($taskarr, 0);
                 $this->clientmgr->setMoStation($fd, $data["body"]);
                 echo "已将 $fd 号客户端监控工位ID配置为：".$this->clientmgr->clients[$fd]->getMoStation().PHP_EOL;
@@ -115,7 +115,7 @@ class Server{
 
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
-                $readyarr = $this->readyArr(MsgLabel::NORMALSTR, "信息无法识别！");
+                $readyarr = Utils::readyArr(MsgLabel::NORMALSTR, "信息无法识别！");
                 break;
         }
         if($readyarr){
@@ -172,7 +172,7 @@ class Server{
                         "motype" => $taskarr["body"]["motype"],
                         "moarr" => $moarr
                     );
-                    $readydata = json_encode($this->readyArr(MsgLabel::MOARR, $bodyarr));
+                    $readydata = json_encode(Utils::readyArr(MsgLabel::MOARR, $bodyarr));
                     $this->server->push($fd, $readydata);
                 }
                 break;
@@ -189,7 +189,7 @@ class Server{
 
     function onClose($server, $fd){
 //        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
-        $taskarr = $this->readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
+        $taskarr = Utils::readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
         $server->task($taskarr, 0);
         $this->clientmgr->clientUnreg($fd);
         
@@ -222,19 +222,10 @@ class Server{
                     "motype" => $motype,
                     "moid" => $moid
                 );
-                $taskarr = $this->readyArr(MsgLabel::TASK_MONITOR, $moarray);
+                $taskarr = Utils::readyArr(MsgLabel::TASK_MONITOR, $moarray);
                 $this->server->task($taskarr, 0);
             }
         }
-    }
-
-    function readyArr($head = null, $body = null){
-        $readyarr = array(
-            "head" => $head,
-            "body" => $body
-        );
-//        $readydata = json_encode($readydata);
-        return $readyarr;
     }
     
 }

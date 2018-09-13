@@ -48,10 +48,12 @@ class Db{
                 "sqlsrv: Server = ".Config::DBHOST.
                 "; Database = ".Config::DBNAME,
                 Config::DBUNAME,
-                Config::DBUPWD
+                Config::DBUPWD,
+                array(
+                    \PDO::ATTR_TIMEOUT => 5,
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+                )
             );
-            $this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->db->setAttribute(\PDO::SQLSRV_ATTR_QUERY_TIMEOUT, 1);
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
             return MsgLabel::DB_CONN_ERROR;
@@ -88,10 +90,12 @@ class Db{
             $this->getNewDb();
             //exit;
         }
-              
-       $moarr = CodeConvert::typeConvert($moarr);
-       $moarr = CodeConvert::statusConvert($moarr);
-        
+
+        for($i = 0; $i < sizeof($moarr); $i++){
+            $moarr[$i]["type"] = Utils::typeConvert($moarr[$i]["type"]);
+            $moarr[$i]["status"] = Utils::statusConvert($moarr[$i]["status"]);
+        }
+
         return $moarr;
     }
 
