@@ -155,12 +155,12 @@ class Server{
                 switch($taskarr["body"]["motype"]){
                     case MsgLabel::TASK_MOLINE:
                         ++$this->tick_i;
-                        //echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
                         $moarr = $this->db->moarr(MsgLabel::TASK_MOLINE, $taskarr["body"]["moid"]);
                         break;
                     case MsgLabel::TASK_MOSTATION:
                         ++$this->tick_i;
-                        //echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
+                        echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： {$this->tick_i}; ".PHP_EOL;
                         $moarr = $this->db->moarr(MsgLabel::TASK_MOSTATION, $taskarr["body"]["moid"]);
                         break;
                     default:
