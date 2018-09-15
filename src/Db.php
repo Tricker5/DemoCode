@@ -46,11 +46,12 @@ class Db{
         try{
             $this->db = new \PDO(
                 "sqlsrv: Server = ".Config::DBHOST.
-                "; Database = ".Config::DBNAME,
+                "; Database = ".Config::DBNAME.
+                "; LoginTimeout = 1",
                 Config::DBUNAME,
                 Config::DBUPWD,
                 array(
-                    \PDO::ATTR_TIMEOUT => 5,
+                    //\PDO::ATTR_TIMEOUT => 5,
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
                 )
             );
