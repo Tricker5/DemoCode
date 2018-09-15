@@ -2,6 +2,9 @@
 
 namespace WSM;
 
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
 class Server{
 
     public $server;
@@ -9,13 +12,20 @@ class Server{
     public $clientmgr;
     public $tick_i;
     public $wtname;
+    public $logger;
 
     public function __construct(){
+
+        if(!is_dir(Config::DIR))
+            mkdir(Config::DIR, 0777, true);
+        //@fopen(Config::DIR . '/swoole_log', 'a+');
+
         $this->server = new \swoole_websocket_server(Config::WSIP, Config::WSPORT);
 
         $this->server->set([
             'worker_num' => 1,
-            'task_worker_num' => 1
+            'task_worker_num' => 1,
+            'log_file' => Config::DIR . '/swoole_log'
         ]);
 
         $this->server->on('open', [$this, "onOpen"]);
@@ -32,15 +42,21 @@ class Server{
             $this->wtname = "task_worker_".$worker_id;
         else
             $this->wtname = "worker_".$worker_id;
-        //echo $this->wtname.PHP_EOL;
-
         
-        //if($this->db->getNewDb() === MsgLabel::DB_CONN_ERROR)
-            //$this->server->shutdown();
+        $stream = new StreamHandler(Config::DIR . "/{$this->wtname}", Config::LOGGER_LEVEL);
+        $this->logger = new Logger('main');
+        $this->logger->pushHandler($stream);
+
+        $this->logger->debug('onWorkerStart: ', array(
+            'worker_pid' => $server->worker_pid,
+            'worker_id' => $worker_id,
+            'taskworker' => $server->taskworker
+        ));
+
         $this->clientmgr = new ClientMgr;
         $this->db = new Db;
         $this->tick_i = 0;
-        if(!$server->taskworker&&$worker_id === 0 ){
+        if(!$server->taskworker && $worker_id === 0 ){
             echo "新进程开启！".PHP_EOL;
             $server->tick(1000, [$this, 'tickMonitor']);
         }
@@ -48,6 +64,8 @@ class Server{
 
     function onOpen($server, $request){
         $fd = $request->fd;
+        $this->logger->debug('onOpen: ', array('fd' => $fd));
+
         echo "与 {$fd} 号客户端连接成功！".PHP_EOL;
         
         $conninfo = $server->getClientInfo($fd);
@@ -71,6 +89,11 @@ class Server{
         $fd = $frame->fd;
         $data = json_decode($frame->data, true);
         $readyarr = null;
+
+        $this->logger->debug('onMessage: ', array(
+            'fd' => $fd,
+            'data' => $data
+        ));
 
         //判断message数据头部分head类型并处理
         switch ($data["head"]){
@@ -127,6 +150,14 @@ class Server{
 
     function onTask($server, $task_id, $src_worker_id, $taskarr){
         $fd = $taskarr["body"]["fd"] ?: null;
+
+        $this->logger->debug('onTask: ', array(
+            'worker_pid' => $server->worker_pid,
+            'worker_id' => $server->worker_id,
+            'src_worker_id' => $src_worker_id,
+            'task_id' => $task_id
+        ));
+
         switch($taskarr["head"]){
             case MsgLabel::TASK_CLIENTREG:
                 $this->clientmgr->clientReg($fd, $taskarr["body"]["conninfo"]);
@@ -182,13 +213,19 @@ class Server{
         }
     }
 
-    function onFinish(){
-        //log;
+    function onFinish($server, $task_id, $data){
+        $this->logger->debug('onFinish: ', array(
+            'worker_pid' => $server->worker_pid,
+            'worker_id' => $server->worker_id,
+            'task_id' => $task_id
+        ));
     }
 
 
     function onClose($server, $fd){
-//        echo "????????UNREG!!!!!!!!!!!!".PHP_EOL;
+
+        $this->logger->debug('onClose: ', array('fd' => $fd));
+
         $taskarr = Utils::readyArr(MsgLabel::TASK_CLIENTUNREG, $fd);
         $server->task($taskarr, 0);
         $this->clientmgr->clientUnreg($fd);
