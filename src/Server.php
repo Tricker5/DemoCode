@@ -159,28 +159,35 @@ class Server{
         ));
 
         switch($taskarr["head"]){
+
+            //注册连接客户端
             case MsgLabel::TASK_CLIENTREG:
                 $this->clientmgr->clientReg($fd, $taskarr["body"]["conninfo"]);
                 //echo "当前TASK进程中客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
-            
+
+            //注销断线客户端
             case MsgLabel::TASK_CLIENTUNREG:
                 $this->clientmgr->clientUnreg($taskarr["body"]);
                 //echo "当前TASK进程客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
                 break;
 
+            //配置监控类型
             case MsgLabel::MOTYPESET:
                 $this->clientmgr->setMoType($fd, $taskarr["body"]["motype"]);
                 break;
 
+            //配置监控线体ID
             case MsgLabel::MOLINESET:
                 $this->clientmgr->setMoLine($fd, $taskarr["body"]["lineid"]);
                 break;
-            
+
+            //配置监控工位点ID
             case MsgLabel::MOSTATIONSET:
                 $this->clientmgr->setMoStation($fd, $taskarr["body"]["stationid"]);
                 break;
-
+                
+            //处理监控任务
             case MsgLabel::TASK_MONITOR:
                 $moarr;
                 switch($taskarr["body"]["motype"]){
@@ -234,6 +241,10 @@ class Server{
         echo "当前客户端连接数为： ".count($this->clientmgr->clients).PHP_EOL;
     }
 
+    /**
+     * 定时监控函数
+     * 向Task进程投递数据库任务
+     */
     function tickMonitor(){
         foreach($this->clientmgr->clients as $client){
             $fd = $client->getFd();

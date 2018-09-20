@@ -12,7 +12,7 @@ class Db{
         
         $this->getNewDb();
         
-        $this->molinesql = 
+        $this->molinesql = //线体监控SQL语句
             "SELECT 
             ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
             FROM mpoint_realtime_status AS mrs
@@ -27,7 +27,7 @@ class Db{
             WHERE p.id in(SELECT id
             FROM dbo.fn_GetPlace(?) 
             WHERE level=5)";
-        $this->mostationsql = 
+        $this->mostationsql = //工位点监控SQL语句
             "SELECT p.id as stationId, mrs.raw_status as status, m.id as mpoint_id, m.name, d.sn, c.slot, c.port, c.type
             from mpoint_realtime_status as mrs
             left join mpoint as m
@@ -42,6 +42,9 @@ class Db{
             (select id from dbo.fn_GetPlace(?) where level = 5) ";
     }
 
+    /**
+     * 建立PDO连接
+     */
     function getNewDb(){
         try{
             $this->db = new \PDO(
@@ -63,6 +66,12 @@ class Db{
 
     }
 
+    /**
+     * 数据库实时查询函数
+     * @param const $motype 监控类型
+     * @param mixed $id 监控对象ID
+     * @return array
+     */
     public function moarr($motype, $id){
         $mosql = null;
         switch($motype){
