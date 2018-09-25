@@ -15,6 +15,9 @@ class Client{
         $this->moline = null;
     }
 
+/**
+ * 获取client各项属性
+ */
     function getFd(){
         return $this->fd;
     }

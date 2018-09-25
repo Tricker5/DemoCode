@@ -104,7 +104,7 @@
                 alert("服务器说："+data["body"]);
                 break;
             case DBTEST:
-                testTable(data["body"]);
+                testArr(data["body"]);
                 break;
             case MOARR:
                 printMoArr(data["body"]);
@@ -161,11 +161,10 @@
         jsonDataSend(DBTEST, "请求测试");
     }
 
-    function testTable(data){
+    function testArr(data){
         alert(jsonToStr(data));  
+        //console.log(jsonToStr(data));
     }
-
-
 
     function printMoArr(body){
         var tablediv = document.getElementById("tablediv");
