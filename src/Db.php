@@ -4,16 +4,9 @@ namespace WSM;
 
 class Db{
 
-    public $db;
-    public $molinesql;
-    public $mostationsql;
-
-    public function __construct(){
-        
-        $this->getNewDb();
-        
-        $this->molinesql = //线体监控SQL语句
-            "SELECT 
+    public static $db;
+    public static $molinesql = 
+        "SELECT 
             ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
             FROM mpoint_realtime_status AS mrs
             LEFT JOIN mpoint AS m
@@ -27,8 +20,9 @@ class Db{
             WHERE p.id in(SELECT id
             FROM dbo.fn_GetPlace(?) 
             WHERE level=5)";
-        $this->mostationsql = //工位点监控SQL语句
-            "SELECT p.id as stationId, mrs.raw_status as status, m.id as mpoint_id, m.name, d.sn, c.slot, c.port, c.type
+    public static $mostationsql = 
+        "SELECT 
+            p.id as stationId, mrs.raw_status as status, m.id as mpoint_id, m.name, d.sn, c.slot, c.port, c.type
             from mpoint_realtime_status as mrs
             left join mpoint as m
             on mrs.id = m.id
@@ -40,14 +34,13 @@ class Db{
             on c.device_id = d.id
             where p.id in 
             (select id from dbo.fn_GetPlace(?) where level = 5) ";
-    }
 
     /**
      * 建立PDO连接
      */
-    function getNewDb(){
+    static function getNewDb(){
         try{
-            $this->db = new \PDO(
+            static::$db = new \PDO(
                 "sqlsrv: Server = ".Config::DBHOST.
                 "; Database = ".Config::DBNAME.
                 "; LoginTimeout = 1",
@@ -72,33 +65,28 @@ class Db{
      * @param mixed $id 监控对象ID
      * @return array
      */
-    public function moarr($motype, $id){
+    static function moarr($motype, $id){
         $mosql = null;
+
         switch($motype){
             case MsgLabel::TASK_MOLINE:
-                $mosql = $this->molinesql; 
+                $mosql = static::$molinesql; 
                 break;
-
             case MsgLabel::TASK_MOSTATION:
-                $mosql = $this->mostationsql;
+                $mosql = static::$mostationsql;
                 break;
-
             default:
                 break;
-        }    
+        }
+
         try{
-            $mopre = $this->db->prepare($mosql);
+            $mopre = static::$db->prepare($mosql);
             $mopre->bindValue(1, $id);
-                //echo "goodbind; ";
             $mopre->execute();
-                //echo "goodexe; ";
             $moarr = $mopre->fetchall(\PDO::FETCH_ASSOC); 
-            //if($moarr)
-                //echo "goodfet; ";
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
-            $this->getNewDb();
-            //exit;
+            static::getNewDb();
         }
 
         for($i = 0; $i < sizeof($moarr); $i++){
@@ -110,9 +98,9 @@ class Db{
     }
 
     //测试专用
-    function testFetch(){
+    static function testArr(){
         try{
-            $testpre = $this->db->prepare($this->molinesql);
+            $testpre = static::$db->prepare(static::$molinesql);
            //,array(\PDO::ERRMODE_EXCEPTION)
             $testpre->bindValue(1, 4);
             $testpre->execute();
@@ -120,7 +108,7 @@ class Db{
             return $testarr;
         }catch(\PDOException $e){
             var_dump($e->errorInfo);
-            $this->getNewDb();
+            static::getNewDb();
             //exit;
         }
     }
