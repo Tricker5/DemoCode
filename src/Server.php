@@ -14,6 +14,7 @@ class Server{
     public $message;
     public $task;
     public $finish;
+    public $client_table;
 
     public function __construct(){
 
@@ -29,8 +30,8 @@ class Server{
         $this->finish = new Finish;
 
         $this->server->set([
-            'worker_num' => 1,
-            'task_worker_num' => 1,
+            'worker_num' => 3,
+            'task_worker_num' => 3,
             'log_file' => Config::DIR . '/swoole_log'
         ]);
         
@@ -43,6 +44,7 @@ class Server{
         $this->server->on('message', [$this->message, "onMessage"]);
         $this->server->on('close', [$this->close, "onClose"]);
 
+        $this->newClientTable($this->server);
     }
 
     function onManagerStart($server){
@@ -61,13 +63,13 @@ class Server{
     function onWorkerStart($server,$worker_id){   
         if($server->taskworker){
             $task_worker_id = $worker_id - $server->setting['worker_num'];
-            Task::$name = "task_worker_".$task_worker_id;
+            $this->task->name = "task_worker_".$task_worker_id;
             $this->logger = Loggers::loggerReg("task_worker");
             $this->logger->debug('onTaskWorkerStart: ', array(
                 'worker_pid' => $server->worker_pid,
                 'worker_id' => $worker_id,
                 'taskworker' => $server->taskworker,
-                'name' => Task::$name
+                'name' => $this->task->name
             ));
             Db::getNewDb();
         }else{
@@ -81,7 +83,7 @@ class Server{
             ));
             if($worker_id === 0){
                 echo "新进程开启！".PHP_EOL;
-                $server->tick(1000, [$this, 'tickMonitor']);
+                $server->tick(1000, [$this, 'tickMonitor']);//开启定时器
             }
 
         }
@@ -92,18 +94,18 @@ class Server{
      * 向Task进程投递数据库任务
      */
     function tickMonitor(){
-        foreach(ClientMgr::$clients as $client){
-            $fd = $client->getFd();
+        foreach($this->server->client_table as $client){
+            $fd = $client["fd"];
             $motype = null;
             $moid = null;
-            switch($client->getMoType()){
+            switch($client["motype"]){
                 case "line":
                     $motype = MsgLabel::TASK_MOLINE;
-                    $moid = $client->getMoLine() ?: null;//若$client->getMoLine()有值，则赋值，否则为null
+                    $moid = $client["moline"] ?: null;
                     break;
                 case "station":
                     $motype = MsgLabel::TASK_MOSTATION;
-                    $moid = $client->getMoStation() ?: null;
+                    $moid = $client["mostation"] ?: null;
                     break;
                 default:
                     break; 
@@ -116,9 +118,19 @@ class Server{
                     "moid" => $moid
                 );
                 $taskarr = Utils::readyArr(MsgLabel::TASK_MONITOR, $moarray);
-                $this->server->task($taskarr, 0);
+                $this->server->task($taskarr);
             }
         }
+    }
+
+    function newClientTable($server){
+        $server->client_table = new \swoole_table(100);//申请内存，实际可用空间不到100；
+        $this->client_table = &$server->client_table;
+        $this->client_table->column("fd", \swoole_table::TYPE_INT);
+        $this->client_table->column("motype", \swoole_table::TYPE_STRING, 10);
+        $this->client_table->column("moline", \swoole_table::TYPE_INT);
+        $this->client_table->column("mostation", \swoole_table::TYPE_INT);
+        $this->client_table->create();
     }
     
     function start(){

@@ -4,14 +4,12 @@ namespace WSM;
 
 class Client{
     private $fd;
-    private $conninfo;
     private $motype;
     private $moline;
     private $mostation;
 
-    function __construct($fd, $conninfo){
+    function __construct($fd){
         $this->fd = $fd;
-        $this->conninfo = $conninfo;
         $this->moline = null;
     }
 
@@ -20,10 +18,6 @@ class Client{
  */
     function getFd(){
         return $this->fd;
-    }
-    
-    function getConnInfo(){
-        return $this->conninfo;
     }
 
     function getMoType(){

@@ -8,8 +8,8 @@ class ClientMgr{
     /**
     * 向clients[]数组注册连接的客户端
     */
-    public static function clientReg($fd, $conninfo){
-        static::$clients[$fd] = new Client($fd, $conninfo);
+    public static function clientReg($fd){
+        static::$clients[$fd] = new Client($fd);
     }
 
     /**

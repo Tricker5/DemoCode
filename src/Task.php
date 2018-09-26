@@ -3,8 +3,8 @@
 namespace WSM;
 
 class Task{
-    static $tick_i = 0;
-    static $name;
+    //static $tick_i = 0;
+    public $name;
 
     function onTask($server, $task_id, $src_worker_id, $taskarr){
         $fd = $taskarr["body"]["fd"] ?: null;
@@ -15,7 +15,7 @@ class Task{
             'worker_id' => $server->worker_id,
             'src_worker_id' => $src_worker_id,
             'task_id' => $task_id,
-            'name' => static::$name
+            'name' => $this->name
         ));
 
         switch($taskarr["head"]){                
@@ -25,13 +25,13 @@ class Task{
                 //判断监控类型
                 switch($taskarr["body"]["motype"]){
                     case MsgLabel::TASK_MOLINE:
-                        ++static::$tick_i;
-                        echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： ".static::$tick_i."; ".PHP_EOL;
+                        //++static::$tick_i;
+                        //echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： ".static::$tick_i."; ".PHP_EOL;
                         $moarr = Db::moarr(MsgLabel::TASK_MOLINE, $taskarr["body"]["moid"]);
                         break;
                     case MsgLabel::TASK_MOSTATION:
-                        ++static::$tick_i;
-                        echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： ".static::$tick_i."; ".PHP_EOL;
+                        //++static::$tick_i;
+                        //echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： ".static::$tick_i."; ".PHP_EOL;
                         $moarr = Db::moarr(MsgLabel::TASK_MOSTATION, $taskarr["body"]["moid"]);
                         break;
                     default:
