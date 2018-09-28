@@ -10,7 +10,7 @@ class Client{
 
     function __construct($fd){
         $this->fd = $fd;
-        $this->moline = null;
+        //$this->moline = null;
     }
 
 /**

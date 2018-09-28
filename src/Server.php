@@ -31,7 +31,7 @@ class Server{
 
         $this->server->set([
             'worker_num' => 3,
-            'task_worker_num' => 3,
+            'task_worker_num' => 10,
             'log_file' => Config::DIR . '/swoole_log'
         ]);
         
@@ -45,6 +45,7 @@ class Server{
         $this->server->on('close', [$this->close, "onClose"]);
 
         $this->newClientTable($this->server);
+        $this->server->tick_i = 0;
     }
 
     function onManagerStart($server){
@@ -124,7 +125,7 @@ class Server{
     }
 
     function newClientTable($server){
-        $server->client_table = new \swoole_table(100);//申请内存，实际可用空间不到100；
+        $server->client_table = new \swoole_table(3000);//申请内存，实际可用空间不到申请数；
         $this->client_table = &$server->client_table;
         $this->client_table->column("fd", \swoole_table::TYPE_INT);
         $this->client_table->column("motype", \swoole_table::TYPE_STRING, 10);

@@ -9,8 +9,7 @@ $server->on("workerstart", function() use($server){
     if(!$server->taskworker){
         try{
             $db = new PDO(
-                "sqlsrv: Server = 10.0.2.2, 1433; Database = kaifaiot_dev_gj", "sa", "abc123456",
-            //    "sqlsrv: Server = 10.0.2.2, 1433; Database = testdb", "sa", "abc123456",
+                "sqlsrv: Server = 10.0.2.2, 1433; Database = testdb", "sa", "abc123456",
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
         }catch(PDOException $e){
@@ -21,26 +20,8 @@ $server->on("workerstart", function() use($server){
         $server->tick(1000, function() use($db, &$i, $server){
             echo ++$i." : ";
             try{
-                if($pre = $db->prepare("SELECT TOP 10
-                    ci.slot,ci.port as cport,ci.type,di.sn,mrs.raw_status as status,p.id,p.name as p5name          
-                    FROM mpoint_realtime_status AS mrs
-                    LEFT JOIN mpoint AS m
-                    ON mrs.mpoint_id = m.id
-                    LEFT JOIN place AS p
-                    ON m.pid = p.id
-                    LEFT JOIN channels_info AS ci
-                    ON ci.id = m.ciid
-                    LEFT JOIN devices_info AS di
-                    ON ci.device_id = di.id                 
-                    WHERE p.id in(SELECT id
-                    FROM dbo.fn_GetPlace(4) 
-                    WHERE level=5)"))
-                    
-                //if($pre = $db->prepare(
-                    //"SELECT * FROM dbo.testTable"))
+                if($pre = $db->prepare("SELECT 1"))
                     echo "good pre; ";
-                //if($pre->bindValue(1, 4))
-                    //echo "good bind; ";
                 if($pre->execute())
                     echo "good execute; ";
                 if($arr = $pre->fetch())
