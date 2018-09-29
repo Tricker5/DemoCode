@@ -10,9 +10,9 @@ class MsgLabel{
     const MOLINESET = 4;
     const MOSTATIONSET = 5;
     
-    const TASK_MONITOR = 12;
-    const TASK_MOLINE = 13;
-    const TASK_MOSTATION = 14;
+    const TASK_MONITOR = 10;
+    const TASK_MOLINE = 1000;
+    const TASK_MOSTATION = 2000;
 
     const DB_CONN_ERROR = 90;
 }

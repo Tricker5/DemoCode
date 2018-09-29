@@ -29,12 +29,6 @@ class Server{
         $this->task = new Task;
         $this->finish = new Finish;
 
-        $this->server->set([
-            'worker_num' => 3,
-            'task_worker_num' => 10,
-            'log_file' => Config::DIR . '/swoole_log'
-        ]);
-        
         $this->server->on('managerstart', [$this, "onManagerStart"]);
         $this->server->on('managerstop', [$this, "onManagerStop"]);
         $this->server->on('workerstart', [$this, "onWorkerStart"]);
@@ -43,6 +37,12 @@ class Server{
         $this->server->on('open', [$this->open, "onOpen"]);
         $this->server->on('message', [$this->message, "onMessage"]);
         $this->server->on('close', [$this->close, "onClose"]);
+
+        $this->server->set([
+            'worker_num' => 2,
+            'task_worker_num' => 4,
+            'log_file' => Config::DIR . '/swoole_log'
+        ]);
 
         $this->newClientTable($this->server);
         $this->server->tick_i = 0;
@@ -95,37 +95,39 @@ class Server{
      * 向Task进程投递数据库任务
      */
     function tickMonitor(){
+        $pushfds = [];
         foreach($this->server->client_table as $client){
             $fd = $client["fd"];
-            $motype = null;
             $moid = null;
             switch($client["motype"]){
                 case "line":
-                    $motype = MsgLabel::TASK_MOLINE;
-                    $moid = $client["moline"] ?: null;
+                    if($client["moline"]){
+                        $moid = MsgLabel::TASK_MOLINE + $client["moline"];
+                        $pushfds[$moid][] = $fd;
+                    }      
                     break;
                 case "station":
-                    $motype = MsgLabel::TASK_MOSTATION;
-                    $moid = $client["mostation"] ?: null;
+                    if($client["mostation"]){
+                        $moid = MsgLabel::TASK_MOSTATION + $client["mostation"];
+                        $pushfds[$moid][] = $fd;
+                    }      
                     break;
                 default:
                     break; 
             }
-            //投递任务
-            if($motype !== null && $moid !== null){
-                $moarray = array(
-                    "fd" => $fd,
-                    "motype" => $motype,
-                    "moid" => $moid
-                );
-                $taskarr = Utils::readyArr(MsgLabel::TASK_MONITOR, $moarray);
-                $this->server->task($taskarr);
-            }
         }
+
+        //分批投递任务，保证可以投递至多个Task进程
+        while(list($moid, $fds) = each($pushfds)){
+            //if(!empty($fds)){
+            $taskarr = Utils::readyArr(MsgLabel::TASK_MONITOR, array("moid"=>$moid, "fds" => $fds));
+            $this->server->task($taskarr);
+            //}
+        }   
     }
 
     function newClientTable($server){
-        $server->client_table = new \swoole_table(3000);//申请内存，实际可用空间不到申请数；
+        $server->client_table = new \swoole_table(30000);//申请内存，实际可用空间不到申请数；
         $this->client_table = &$server->client_table;
         $this->client_table->column("fd", \swoole_table::TYPE_INT);
         $this->client_table->column("motype", \swoole_table::TYPE_STRING, 10);

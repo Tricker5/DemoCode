@@ -36,21 +36,18 @@ class Message{
 
             case MsgLabel::MOTYPESET:
                 echo "配置客户端监控类型...".PHP_EOL;
-                //ClientMgr::setMoType($fd, $data["body"]);
                 $client_table->set("$fd", ["motype" => $data["body"]]);
                 echo "已将 $fd 号客户端监控类型配置为：".$client_table->get("$fd", "motype").PHP_EOL;
                 break;
 
             case MsgLabel::MOLINESET:
                 echo "配置客户端监控线体...".PHP_EOL;
-                //ClientMgr::setMoLine($fd, $data["body"]);
                 $client_table->set("$fd", ["moline" => $data["body"]]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$client_table->get("$fd", "moline").PHP_EOL;
                 break;
             
             case MsgLabel::MOSTATIONSET:
                 echo "配置客户端监控工位...".PHP_EOL;
-                //ClientMgr::setMoStation($fd, $data["body"]);
                 $client_table->set("$fd", ["mostation" => $data["body"]]);
                 echo "已将 $fd 号客户端监控工位ID配置为：".$client_table->get("$fd", "mostation").PHP_EOL;
                 break;

@@ -6,7 +6,6 @@ class Task{
     public $name;
 
     function onTask($server, $task_id, $src_worker_id, $taskarr){
-        $fd = $taskarr["body"]["fd"] ?: null;
         $logger = Loggers::$loggers["task_worker"];
         //$tick_i = &$server->tick_i;
 
@@ -22,30 +21,27 @@ class Task{
             //处理监控任务
             case MsgLabel::TASK_MONITOR:
                 $moarr;
-                //判断监控类型
-                switch($taskarr["body"]["motype"]){
-                    case MsgLabel::TASK_MOLINE:
-                        //++$tick_i;
-                        //echo "客户端ID：{$fd}；\t线体ID：{$taskarr["body"]["moid"]}；\t推送次数： ".$tick_i."; ".PHP_EOL;
-                        $moarr = Db::moarr(MsgLabel::TASK_MOLINE, $taskarr["body"]["moid"]);
-                        break;
-                    case MsgLabel::TASK_MOSTATION:
-                        //++$tick_i;
-                        //echo "客户端ID：{$fd}；\t工位ID：{$taskarr["body"]["moid"]}；\t推送次数： ".$tick_i."; ".PHP_EOL;
-                        $moarr = Db::moarr(MsgLabel::TASK_MOSTATION, $taskarr["body"]["moid"]);
-                        break;
-                    default:
-                        break;    
+                $motype;
+                $moid = $taskarr["body"]["moid"];
+                $fds = $taskarr["body"]["fds"];
+                if($moid <2000){
+                    $motype = MsgLabel::TASK_MOLINE;
+                    $moarr = Db::moarr(MsgLabel::TASK_MOLINE, $moid % 1000);
+                }else{
+                    $motype = MsgLabel::TASK_MOSTATION;
+                    $moarr = Db::moarr(MsgLabel::TASK_MOSTATION, $moid % 1000);
                 }
                 if($moarr){
                     $bodyarr = array(
                         "time" => date("Y-m-d, H:i:s"),
-                        "motype" => $taskarr["body"]["motype"],
+                        "motype" => $motype,
                         "moarr" => $moarr
                     );
                     $readydata = json_encode(Utils::readyArr(MsgLabel::MOARR, $bodyarr));
-                    if($server->client_table->exist($fd))
-                        $server->push($fd, $readydata);
+                    foreach($fds as $fd){
+                        if($server->client_table->exist($fd))//判断客户端是否在查询过程中断开，减少警告
+                            $server->push($fd, $readydata);
+                    }   
                 }
                 break;
 
