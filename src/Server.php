@@ -41,7 +41,8 @@ class Server{
         $this->server->set([
             'worker_num' => 2,
             'task_worker_num' => 4,
-            'log_file' => Config::DIR . '/swoole_log'
+            'log_file' => Config::DIR . '/swoole_log',
+            'log_level' => \SWOOLE_LOG_WARNING
         ]);
 
         $this->newClientTable($this->server);

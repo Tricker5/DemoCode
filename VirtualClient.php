@@ -13,9 +13,13 @@ class WebsocketClient{
     
     public $client;
     public $hs_succ;
+    public $onmsg_time_1;
+    public $onmsg_time_2;
+    public $msg_time;
     //public $msg_label;
 
     public function __construct(){
+        //$this->onmsg_time_1 = 0;
         $this->client = new \swoole_http_client(static::IP, static::PORT);
         $this->client->on("connect", [$this, "onConnect"]);
         $this->client->on("message", [$this, "onMessage"]);
@@ -32,6 +36,9 @@ class WebsocketClient{
     }
 
     function onMessage($client, $frame){
+        $this->onmsg_time_2 =  microtime(true);
+        $this->msg_time = $this->onmsg_time_2 - $this->onmsg_time_1;//记录收信时间间隔
+        $this->onmsg_time_1 = $this->onmsg_time_2; 
         $this->client->i ++;
     }
 
@@ -57,12 +64,13 @@ class WebsocketClient{
             $moidset = json_encode(array("head" => static::MOSTATIONSET, "body" => mt_rand(5,99)));
         }
         @$this->client->push($motypeset);
-        @$this->client->push($moidset);     
+        @$this->client->push($moidset);
+        $this->onmsg_time_1 = microtime(true);//握手成功时初始化收信时间     
     }
-
+    
 }
 
-const CLIENT_NUM = 500;//支持0～1000个客户端左右
+const CLIENT_NUM = 3000;//支持0～1000个客户端左右
 
 $clients = [];
 $i = 0;
@@ -74,7 +82,7 @@ $total_count_label = 0;
 /**
  * 采用渐进式连接，避免首次多连接接入导致部分断线
  */
-$tick_id = swoole_timer_tick(20, function() use(&$i, &$clients, &$tick_id){
+$tick_id = swoole_timer_tick(10, function() use(&$i, &$clients, &$tick_id){
     $clients[$i] = new WebsocketClient;
     $i++;
     if($i == CLIENT_NUM){
@@ -91,13 +99,17 @@ for($i = 0; $i != CLIENT_NUM; $i++){
 swoole_timer_tick(1000, function() 
     use(&$clients, $msg_num, $good_client_num, &$total_msg, &$total_count_label){
         $msg_labels = [];
+        $max_msg_time = 0;
         foreach($clients as $client){
             if($client->hs_succ)
                 $good_client_num++;
-    
             $msg_num += $client->client->i;//统计所有客户端收到的信息数
             $client->client->i = 0;
+
+            if($client->msg_time > $max_msg_time)
+                $max_msg_time = $client->msg_time;//获取客户端中最大的收信间隔
         }
+
         if($total_count_label ==1)
             $total_msg += $msg_num - CLIENT_NUM;
         if($good_client_num == CLIENT_NUM)
@@ -105,6 +117,8 @@ swoole_timer_tick(1000, function()
         echo "clients_num: ".$good_client_num.PHP_EOL;
         echo "msg_num: ".$msg_num.PHP_EOL;
         echo "total_msg: ".$total_msg.PHP_EOL;
-});
+        echo "max_msg_time: ".$max_msg_time.PHP_EOL;
+    }
+);
 
 ?>

@@ -46,6 +46,7 @@ class Task{
                 break;
 
             case MsgLabel::DBTEST:
+                $fd = $taskarr["body"]["fd"];
                 $testarr = Db::testArr();
                 $readydata = json_encode(Utils::readyArr(MsgLabel::DBTEST, $testarr));
                 $server->push($fd, $readydata);

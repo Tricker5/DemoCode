@@ -23,7 +23,7 @@ class Config{
      * log配置
      */
     const DIR = '/home/tricker_5/code_log/WSM';
-    const LOGGER_LEVEL = Logger::DEBUG; 
+    const LOGGER_LEVEL = Logger::CRITICAL; 
 }
 
 
