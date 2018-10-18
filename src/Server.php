@@ -17,10 +17,9 @@ class Server{
     public $client_table;
 
     public function __construct(){
-
-        if(!is_dir(Config::DIR))
-            mkdir(Config::DIR, 0777, true);
-        //@fopen(Config::DIR . '/swoole_log', 'a+');
+        $time = microtime(true);
+        if(!is_dir(Config::LOG_DIR))
+            mkdir(Config::LOG_DIR, 0777, true);
 
         $this->server = new \swoole_websocket_server(Config::WSIP, Config::WSPORT);
         $this->open = new Open;
@@ -41,19 +40,20 @@ class Server{
         $this->server->set([
             'worker_num' => 2,
             'task_worker_num' => 4,
-            'log_file' => Config::DIR . '/swoole_log',
-            'log_level' => \SWOOLE_LOG_WARNING
+            'log_file' => Config::LOG_DIR . '/swoole_log',
         ]);
 
-        $this->newClientTable($this->server);
-        $this->server->tick_i = 0;
+        $this->table = new Table($this->server);
+        echo "Server constructing takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     function onManagerStart($server){
+        $time = microtime(true);
         $this->logger = Loggers::loggerReg("manager");
         $this->logger->debug('onManagerStart: ',array(
             "server" => $server
         ));
+        echo "manager staring takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     function onManagerStop($server){
@@ -62,10 +62,12 @@ class Server{
         ));
     }
 
-    function onWorkerStart($server,$worker_id){   
+    function onWorkerStart($server,$worker_id){
+        $time = microtime(true);   
         if($server->taskworker){
             $task_worker_id = $worker_id - $server->setting['worker_num'];
             $this->task->name = "task_worker_".$task_worker_id;
+            $this->name = $this->task->name;
             $this->logger = Loggers::loggerReg("task_worker");
             $this->logger->debug('onTaskWorkerStart: ', array(
                 'worker_pid' => $server->worker_pid,
@@ -73,7 +75,6 @@ class Server{
                 'taskworker' => $server->taskworker,
                 'name' => $this->task->name
             ));
-            Db::getNewDb();
         }else{
             $this->name = "worker_".$worker_id;
             $this->logger = Loggers::loggerReg("worker");
@@ -83,13 +84,27 @@ class Server{
                 'taskworker' => $server->taskworker,
                 'name' => $this->name
             ));
-            if($worker_id === 0){
-                echo "新进程开启！".PHP_EOL;
-                $server->tick(1000, [$this, 'tickMonitor']);//开启定时器
-            }
-
         }
+        Db::getNewDb();
+
+        if($worker_id === 0){
+            echo "新进程开启！".PHP_EOL;
+            $taskarr = Utils::readyArr(MsgLabel::TASK_PLACE_INIT);
+            $server->task($taskarr);
+            $server->tick(2000, [$this, 'tickTableUpdate']);//开启定时器
+        }
+
+        echo "$this->name starting takes: " . (microtime(true) - $time) . PHP_EOL;
     }
+
+    /**
+     * 定时更新内存表
+     */
+    function tickTableUpdate(){
+        $taskarr = Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE);
+        $this->server->task($taskarr);
+    }
+
 
     /**
      * 定时监控函数
@@ -127,16 +142,6 @@ class Server{
         }   
     }
 
-    function newClientTable($server){
-        $server->client_table = new \swoole_table(30000);//申请内存，实际可用空间不到申请数；
-        $this->client_table = &$server->client_table;
-        $this->client_table->column("fd", \swoole_table::TYPE_INT);
-        $this->client_table->column("motype", \swoole_table::TYPE_STRING, 10);
-        $this->client_table->column("moline", \swoole_table::TYPE_INT);
-        $this->client_table->column("mostation", \swoole_table::TYPE_INT);
-        $this->client_table->create();
-    }
-    
     function start(){
         $this->server->start();
     }

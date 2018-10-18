@@ -8,8 +8,16 @@ class Finish{
         $logger->debug('onFinish: ', array(
             'worker_pid' => $server->worker_pid,
             'worker_id' => $server->worker_id,
-            'task_id' => $task_idss
+            'task_id' => $task_id
         ));
+
+        switch($data){
+            case MsgLabel::FINISH_TABLE_UPDATE:
+                $server->task(Utils::readyArr(MsgLabel::TASK_PUSH));
+                break;
+            default:
+                break;
+        }
     }
 }
 

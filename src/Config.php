@@ -22,8 +22,14 @@ class Config{
     /**
      * log配置
      */
-    const DIR = '/home/tricker_5/code_log/WSM';
+    const LOG_DIR = __DIR__ . '/..' . '/log';
     const LOGGER_LEVEL = Logger::CRITICAL; 
+
+    /**
+     * Table配置
+     */
+    const DEVICE_NUM = 8192;
+    const CLIENT_NUM = 500;
 }
 
 

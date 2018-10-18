@@ -8,18 +8,15 @@
 </head>
 <body>
     <div>
-        <input id="msg" type="text">
         <button id="connect" onclick="dConnect();">Connect</button>
-        <button id="send" onclick="Send();">Send</button>
         <button id="close" onclick="Close();">Close</button>
     </div> 
     <div id = "connectstatus">
 
     </div>
+
     <br> 
-    <div>
-        <button id="dbtest" onclick="dbtest();">数据库查询测试</button>
-    </div>  
+
     <div>
         <table border = 1>
             <tr align = "center">
@@ -27,11 +24,11 @@
                 <td>监控范围</td>
             </tr>
             <tr align = "left">
-                <td><input type="radio" name="motype" id="none" value="none" onclick="setMoType();">无</td>
+                <td><input type="radio" name="motype" id="none" value="none" onclick="setMoType(this);">无</td>
                 <td></td>
             </tr>
             <tr align = "left">
-                <td><input type="radio" name="motype" id="line" value="line" onclick="setMoType();">线体</td>
+                <td><input type="radio" name="motype" id="line" value="line" onclick="setMoType(this);">线体</td>
                 <td>选择监控线体：
                     <select name="lineid" id="lineid" onchange="setMoLine();">
                         <option selected="selected" disabled="disabled" style="display:none" value=""></option>
@@ -49,7 +46,7 @@
                 </td>
             </tr>
             <tr>
-                <td><input type="radio" name="motype" id="station" value="station" onclick="setMoType();">工位</td>
+                <td><input type="radio" name="motype" id="station" value="station" onclick="setMoType(this);">工位</td>
                 <td>
                     请输入工位id（5～99）
                     <input type="text" name = "stationid" id="stationid">
@@ -65,20 +62,19 @@
 <script>
     var dbClientSocket;
 
-    const NORMALSTR = 0;
-    const MOTYPESET =1;
-    const DBTEST = 2;
-    const MOARR = 3;
-    const MOLINESET = 4;
-    const MOSTATIONSET = 5;
+    const DATA_REGION = "region data";
+    const DATA_LINE = "line data";
+    const DATA_STATION = "station data";
 
-    const TASK_MOLINE = 1000;
-    const TASK_MOSTATION = 2000;
+    const SET_MONITOR_TYPE = "type set";
+    const SET_ID_LINE = "line id set";
+    const SET_ID_REGION = "region id set";
+    const SET_ID_STATION = "station id set";
 
     function dConnect(){
         try{
             if(!dbClientSocket){
-                dbClientSocket = new WebSocket("ws://0.0.0.0:7777");
+                dbClientSocket = new WebSocket("ws://127.0.0.1:7777");
                 dbClientSocket.onopen= dOpen;
                 dbClientSocket.onerror = dError;
             }
@@ -99,19 +95,7 @@
     }
     function dMessage(msg){
         data = JSON.parse(msg.data);
-        switch(data["head"]){
-            case NORMALSTR:
-                alert("服务器说："+data["body"]);
-                break;
-            case DBTEST:
-                testArr(data["body"]);
-                break;
-            case MOARR:
-                printMoArr(data["body"]);
-                break;
-            default:
-                break;
-        }
+        printMoArr(data);
     }
 
     function dClose(){
@@ -129,50 +113,35 @@
     * 客户端配置部分函数
     * 配置监控类型setMoType()、配置监控线体setMoLine()、配置监控工位setMoStation()
     */
-    function setMoType(){
-        var motype_radio = document.getElementsByName("motype");
-        for(i = 0; i < motype_radio.length;i++){
-            if(motype_radio[i].checked){
-                motype = motype_radio[i].value;
-            }
-        }
+    function setMoType(obj){
+        if(obj.checked){
+            motype = obj.value;
+        }else
+            return;
         if(motype == "none")
             document.getElementById("tablediv").innerHTML = "";
-        jsonDataSend(MOTYPESET, motype);
+        jsonDataSend(SET_MONITOR_TYPE, motype);
     }
 
     function setMoLine(){
         lineid = document.getElementById("lineid").value; 
-        jsonDataSend(MOLINESET, lineid);
+        jsonDataSend(SET_ID_LINE, lineid);
     }
     
     function setMoStation(){
         stationid = document.getElementById("stationid").value;
         if(stationid >= 5 && stationid <= 99)
-            jsonDataSend(MOSTATIONSET, stationid);
+            jsonDataSend(SET_ID_STATION, stationid);
         else
             alert("请输入5～99之内的有效ID！");
     }
 
-    /*
-    * 数据库查询测试部分函数
-    */
-    function dbtest(){
-        jsonDataSend(DBTEST, "请求测试");
-    }
-
-    function testArr(data){
-        alert(jsonToStr(data));  
-        //console.log(jsonToStr(data));
-    }
-
-    function printMoArr(body){
+    function printMoArr(data){
         var tablediv = document.getElementById("tablediv");
-        data = body.moarr;
-        time = body.time;
-        var ptime =  "<p>监控时间："+time+"</p>";
+        head = data.head;
+        body = data.body;
 
-        if(body.motype == TASK_MOLINE){
+        if(head == DATA_LINE){
             var table = 
                 "<table align='center' border=1 bordercolor='purple'>"+
                     "<tr align='center' height='40'>"+
@@ -184,7 +153,7 @@
                     "<td align='center' width = '200'>区域ID</td>"+
                     "<td align='center' width = '200'>所在区域</td>"+
                     "</tr>";
-        }else if (body.motype == TASK_MOSTATION){
+        }else if (head == DATA_STATION){
             var table = 
                 "<table align='center' border=1 bordercolor='purple'>"+
                     "<tr align='center' height='40'>"+
@@ -201,16 +170,16 @@
 
         var printarr = "";
         //console.log("MEOW! ")            
-        for(var i in data){
+        for(var i in body){
             printarr += "<tr align='center' height='40'>";
-            for(var j in data[i]){
-                printarr += "<td align='center' width = '200'>"+data[i][j]+"</td>";
+            for(var j in body[i]){
+                printarr += "<td align='center' width = '200'>"+body[i][j]+"</td>";
                 //console.log("ohhhhh!");
             }
             printarr += "</tr>";
         }
-        var printlinemo = ptime + table + printarr + "</table>";
-        tablediv.innerHTML = printlinemo;
+        var print_str = table + printarr + "</table>";
+        tablediv.innerHTML = print_str;
 
     }
     
