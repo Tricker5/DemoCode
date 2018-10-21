@@ -32,6 +32,19 @@ class Table{
         $server->place_table = $place_table;
         $server->place_table->create();
 
+        //创建设备表
+        $device_table = new \swoole_table(Config::DEVICE_NUM * 4);
+        $device_table->column("sn", \swoole_table::TYPE_INT, 8);
+        $device_table->column("ip", \swoole_table::TYPE_STRING, 32);
+        $device_table->column("rssi", \swoole_table::TYPE_INT, 2);
+        $device_table->column("station_id", \swoole_table::TYPE_INT);
+        $device_table->column("station_name", \swoole_table::TYPE_STRING, 32);
+        $device_table->column("line_id", \swoole_table::TYPE_INT);
+        $device_table->column("line_name", \swoole_table::TYPE_STRING, 32);
+        $device_table->column("rssi_update_time", \swoole_table::TYPE_INT, 8);
+        $server->device_table = $device_table;
+        $server->device_table->create();
+
         //创建通道监控点表
         $channel_table = new \swoole_table(Config::DEVICE_NUM * 32 * 4);
 

@@ -5,12 +5,12 @@ namespace WSM;
 class Task{
     public $name;
 
-    function onTask($server, $task_id, $src_worker_id, $taskarr){
+    function onTask($server, $task_id, $src_worker_id, $task_arr){
         $logger = Loggers::$loggers["task_worker"];
         //$tick_i = &$server->tick_i;
 
         $logger->debug('onTask: ', array(
-            'task_content' => $taskarr["head"],
+            'task_content' => $task_arr["head"],
             'name' => $this->name,
             'worker_pid' => $server->worker_pid,
             'worker_id' => $server->worker_id,
@@ -18,22 +18,27 @@ class Task{
             'task_id' => $task_id,
         ));
 
-        switch($taskarr["head"]){                
+        switch($task_arr["head"]){                
             case MsgLabel::TASK_TABLE_UPDATE:
                 //$time = microtime(true);
                 if($this->tableUpdate($server)){
                     //echo "Table updating takes: " . (microtime(true) - $time) . PHP_EOL;
-                    return MsgLabel::FINISH_TABLE_UPDATE;
+                    return Utils::readyArr(MsgLabel::FINISH_TABLE_UPDATE);
                 }
                 break;
             
             case MsgLabel::TASK_PLACE_INIT:
                 $this->placeInit($server->place_table);
                 break;
+            
+            case MsgLabel::TASK_CLIENT_CLASSIFY:
+                if(count($fd_arr = $this->clientClassify($server)) != 0)
+                    return Utils::readyArr(MsgLabel::FINISH_CLIENT_CLASSIFY, $fd_arr);
+                break;
 
             case MsgLabel::TASK_PUSH:
                 //$time = microtime(true);
-                $this->pushData($server);
+                $this->pushData($server, $task_arr["body"]["monitor_type"], $task_arr["body"]["monitor_id_fd"]);
                 //echo "Data pushing takes: " . (microtime(true) - $time) . PHP_EOL;
                 break;
 
@@ -56,9 +61,25 @@ class Task{
     }
 
     function tableUpdate($server){
-        Db::getChannelTable();
         $place_table = $server->place_table;
+        $device_table = $server->device_table;
         $channel_table = $server->channel_table;
+        //更新设备表
+        Db::getDeviceTable();
+        while($row = Db::$device_table_pre->fetch(\PDO::FETCH_ASSOC)){
+            $device_table->set("{$row["station_id"]}", array(
+                "ip" => $row["ip"],
+                "line_id" => $row["line_id"],
+                "line_name" => $place_table->get($row["line_id"], "name"),
+                "rssi" => $row["rssi"],
+                "sn" => $row["sn"],
+                "rssi_update_time" => $row["rssi_update_time"],
+                "station_id" => $row["station_id"],
+                "station_name" => trim($row["station_name"]),
+            ));
+        }
+        //更新通道监控点表
+        Db::getChannelTable();
         while($row = Db::$channel_table_pre->fetch(\PDO::FETCH_ASSOC)){
             $channel_table->set("{$row["point_id"]}", array(
                 "sn" => $row["sn"],
@@ -77,11 +98,9 @@ class Task{
         return true;
     }
 
-    function pushData($server){
+    function clientClassify($server){
         $client_table = $server->client_table;
-        $place_table = $server->place_table;
-        $channel_table = $server->channel_table;
-        $fd_arr = ["region" => [], "line" => [], "station" => [], "place"=>[], "rssi"=>[]];
+        $fd_arr = [];
         foreach($client_table as $c_table){
             switch($c_table["monitor_type"]){
                 case "region":
@@ -107,36 +126,43 @@ class Task{
                     break;
             }
         }
-        foreach(array_keys($fd_arr["region"]) as $region_id){
-            $region_data = $this->getRegionData($server, $region_id);
-            foreach($fd_arr["region"][$region_id] as $fd){
-                if($client_table->exist($fd))
-                    $server->push($fd, json_encode(Utils::readyArr(MsgLabel::DATA_REGION, $region_data)));
-            }
+        return $fd_arr;
+    }
+
+    function pushData($server, $monitor_type, $monitor_id_fd){
+        $client_table = $server->client_table;
+        $place_table = $server->place_table;
+        $channel_table = $server->channel_table;
+
+        switch($monitor_type){
+            case "region":
+                $msg_label = MsgLabel::DATA_REGION;
+                $get_data_func = "getRegionData";
+                break;
+            case "line":
+                $msg_label = MsgLabel::DATA_LINE;
+                $get_data_func = "getLineData";
+                break;
+            case "station":
+                $msg_label = MsgLabel::DATA_STATION;
+                $get_data_func = "getStationData";
+                break;
+            case "place":
+                $msg_label = MsgLabel::DATA_PLACE;
+                $get_data_func = "getPlaceData";
+                break;
+            case "rssi":
+                $msg_label = MsgLabel::DATA_RSSI;
+                $get_data_func = "getRssiData";
+                break;
         }
-        foreach(array_keys($fd_arr["line"]) as $line_id){
-            $line_data = $this->getLineData($server, $line_id);
-            //var_dump(count($line_data));
-            foreach($fd_arr["line"][$line_id] as $fd){
+        foreach(array_keys($monitor_id_fd) as $monitor_id){
+            $monitor_data = $this->$get_data_func($server, $monitor_id);
+            foreach($monitor_id_fd[$monitor_id] as $fd){
                 if($client_table->exist($fd))
-                    $server->push($fd, json_encode(Utils::readyArr(MsgLabel::DATA_LINE, $line_data)));
+                    $server->push($fd, json_encode(Utils::readyArr($msg_label, $monitor_data)));
             }
-        }
-        foreach(array_keys($fd_arr["station"]) as $station_id){
-            $station_data = $this->getStationData($server, $station_id);
-            foreach($fd_arr["station"][$station_id] as $fd){
-                if($client_table->exist($fd))
-                    $server->push($fd, json_encode(Utils::readyArr(MsgLabel::DATA_STATION, $station_data)));
-            }
-        }
-        foreach(array_keys($fd_arr["place"]) as $place_id){
-            $place_data = $this->getPlaceData($server, $place_id);
-            foreach($fd_arr["place"][$place_id] as $fd){
-                if($client_table->exist($fd))
-                    $server->push($fd, json_encode(Utils::readyArr(MsgLabel::DATA_PLACE, $place_data)));
-            }
-        }
-        
+        }        
     }
 
     function getRegionData($server, $region_id){
@@ -151,15 +177,14 @@ class Task{
                 $region_data["rows"]["line_name"] = $p_table["name"];
                 foreach($channel_table as $ch_table){
                     if($p_table["id"] == $ch_table["line_id"]){
-                        $line_arr = $channel_table->get($channel_table->key());
                         $region_data["rows"]["line"][]= array(
-                            "slot" => $line_arr["slot"],
-                            "cport" => $line_arr["port"],
-                            "type" => $line_arr["type"],
-                            "sn" => $line_arr["sn"],
-                            "status" => $line_arr["real_status"],
-                            "station_id" => $line_arr["station_id"],
-                            "station_name" => $line_arr["station_name"]
+                            "slot" => $ch_table["slot"],
+                            "cport" => $ch_table["port"],
+                            "type" => $ch_table["type"],
+                            "sn" => $ch_table["sn"],
+                            "status" => $ch_table["real_status"],
+                            "station_id" => $ch_table["station_id"],
+                            "station_name" => $ch_table["station_name"]
                         );
                     }
                 }
@@ -174,15 +199,14 @@ class Task{
         $line_data = [];
         foreach($channel_table as $ch_table){
             if($line_id == $ch_table["line_id"]){
-                $line_arr = $channel_table->get($channel_table->key());
                 $line_data[]= array(
-                    "slot" => $line_arr["slot"],
-                    "cport" => $line_arr["port"],
-                    "type" => Utils::typeConvert($line_arr["type"]),
-                    "sn" => $line_arr["sn"],
-                    "status" => $line_arr["real_status"],
-                    "id" => $line_arr["station_id"],
-                    "p5name" => $line_arr["station_name"]
+                    "slot" => $ch_table["slot"],
+                    "cport" => $ch_table["port"],
+                    "type" => Utils::typeConvert($ch_table["type"]),
+                    "sn" => $ch_table["sn"],
+                    "status" => $ch_table["real_status"],
+                    "id" => $ch_table["station_id"],
+                    "p5name" => $ch_table["station_name"]
                 );
             }
         }
@@ -194,16 +218,15 @@ class Task{
         $station_data = [];
         foreach($channel_table as $ch_table){
             if($station_id == $ch_table["station_id"]){
-                $station_arr = $channel_table->get($channel_table->key());
                 $station_data[] = array(
-                    "stationId" => $station_arr["station_id"],
-                    "status" => Utils::statusConvert($station_arr["type"], $station_arr["real_status"]),
-                    "mpoint_id" => $station_arr["point_id"],
-                    "name" => $station_arr["point_name"],
-                    "sn" => $station_arr["sn"],
-                    "slot" => $station_arr["slot"],
-                    "port" => $station_arr["port"],
-                    "type" => $station_arr["type"]
+                    "stationId" => $ch_table["station_id"],
+                    "status" => Utils::statusConvert($ch_table["type"], $ch_table["real_status"]),
+                    "mpoint_id" => $ch_table["point_id"],
+                    "name" => $ch_table["point_name"],
+                    "sn" => $ch_table["sn"],
+                    "slot" => $ch_table["slot"],
+                    "port" => $ch_table["port"],
+                    "type" => $ch_table["type"]
                 );
             }
         }
@@ -220,6 +243,24 @@ class Task{
             $place_table->set($p_table["id"], array("status" => "POWER ON"));
         }
         return $place_data;
+    }
+
+    function getRssiData($server, $rssi_line_id){
+        $device_table = $server->device_table;
+        $rssi_data = [];
+        foreach($device_table as $d_table){
+            if($d_table["line_id"] == $rssi_line_id){
+                $rssi_data[] = array(
+                    "ip" => $d_table["ip"],
+                    "line_id" =>$d_table["line_id"],
+                    "line_name" => $d_table["line_name"],
+                    "rssi" => $d_table["rssi"],
+                    "sn" => $d_table["sn"],
+                    "updatetime" => $d_table["rssi_update_time"]
+                );
+            }
+        }
+        return $rssi_data;
     }
 
     /**

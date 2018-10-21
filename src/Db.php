@@ -8,7 +8,15 @@ class Db{
     
     public static $place_table_sql = 
         "SELECT id, pid, name, level from place where del = 0";
-    
+    public static $device_table_sql =
+        "SELECT rssi, dr.updatetime as rssi_update_time,
+            ip, di.id as station_id, sn,
+            p.name as station_name, p.pid as line_id
+            from device_rssi as dr
+            left join devices_info as di
+            on dr.device_id = di.id
+            left join place as p
+            on p.id = di.id";
     public static $channel_table_sql = 
         "SELECT di.sn as sn, 
             ci.slot as slot, ci.port as port, ci.type as type, 
@@ -26,6 +34,7 @@ class Db{
             on p.id = m.pid
             where m.endtime = 0";
     public static $place_table_pre;
+    public static $device_table_pre;
     public static $channel_table_pre;
 
     /**
@@ -45,6 +54,7 @@ class Db{
                 )
             );
             static::$place_table_pre = static::$db->prepare(static::$place_table_sql);
+            static::$device_table_pre = static::$db->prepare(static::$device_table_sql);
             static::$channel_table_pre = static::$db->prepare(static::$channel_table_sql);
             
             //return MsgLabel::DB_CONN_SUCCESS;
@@ -58,6 +68,15 @@ class Db{
     static function getPlaceTable(){
         try{
             static::$place_table_pre->execute();
+        }catch(\PDOException $e){
+            Loggers::$loggers["taskworker"]->critical($e->getMessage);
+            Db::getNewDb();
+        }
+    }
+
+    static function getDeviceTable(){
+        try{
+            static::$device_table_pre->execute();
         }catch(\PDOException $e){
             Loggers::$loggers["taskworker"]->critical($e->getMessage);
             Db::getNewDb();

@@ -39,7 +39,7 @@ class Server{
 
         $this->server->set([
             'worker_num' => 2,
-            'task_worker_num' => 4,
+            'task_worker_num' => 6,
             'log_file' => Config::LOG_DIR . '/swoole_log',
         ]);
 
@@ -85,7 +85,8 @@ class Server{
                 'name' => $this->name
             ));
         }
-        Db::getNewDb();
+
+        Db::getNewDb();//建立数据库连接
 
         if($worker_id === 0){
             echo "新进程开启！".PHP_EOL;
@@ -103,43 +104,6 @@ class Server{
     function tickTableUpdate(){
         $taskarr = Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE);
         $this->server->task($taskarr);
-    }
-
-
-    /**
-     * 定时监控函数
-     * 向Task进程投递数据库任务
-     */
-    function tickMonitor(){
-        $pushfds = [];
-        foreach($this->server->client_table as $client){
-            $fd = $client["fd"];
-            $moid = null;
-            switch($client["motype"]){
-                case "line":
-                    if($client["moline"]){
-                        $moid = MsgLabel::TASK_MOLINE + $client["moline"];
-                        $pushfds[$moid][] = $fd;
-                    }      
-                    break;
-                case "station":
-                    if($client["mostation"]){
-                        $moid = MsgLabel::TASK_MOSTATION + $client["mostation"];
-                        $pushfds[$moid][] = $fd;
-                    }      
-                    break;
-                default:
-                    break; 
-            }
-        }
-
-        //分批投递任务，保证可以投递至多个Task进程
-        while(list($moid, $fds) = each($pushfds)){
-            //if(!empty($fds)){
-            $taskarr = Utils::readyArr(MsgLabel::TASK_MONITOR, array("moid"=>$moid, "fds" => $fds));
-            $this->server->task($taskarr);
-            //}
-        }   
     }
 
     function start(){

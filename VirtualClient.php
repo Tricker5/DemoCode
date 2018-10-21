@@ -7,11 +7,15 @@ class WebsocketClient{
     const DATA_REGION = "region data";
     const DATA_LINE = "line data";
     const DATA_STATION = "station data";
+    const DATA_PLACE = "place data";
+    const DATA_RSSI = "rssi data";
 
     const SET_MONITOR_TYPE = "type set";
     const SET_ID_LINE = "line id set";
     const SET_ID_REGION = "region id set";
     const SET_ID_STATION = "station id set";
+    const SET_ID_PLACE = "place id set";
+    const SET_ID_RSSI = "rssi line id set";
     
     public $client;
     public $hs_succ;
