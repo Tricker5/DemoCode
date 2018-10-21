@@ -29,7 +29,7 @@ class Config{
      * Table配置
      */
     const DEVICE_NUM = 8192;
-    const CLIENT_NUM = 500;
+    const CLIENT_NUM = 5000;
 }
 
 

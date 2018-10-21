@@ -14,15 +14,35 @@ class Utils{
         return $readyarr;
     }
 
+    static function statusLevel($status){
+        $status_level_arr = array(
+            'SERVICE' => 1, //service
+            'FAIL' => 2, //fail
+            'INFRARED' => 3, //infrared
+            'PASS' => 4, //pass
+            'STANDBY' => 5, //standby
+            'OFFLINE' => 6, //OFFLINE
+            'OFF' => 7, // OFF
+            'ON' => 8, //ON
+            'ONLINE' => 9, //ONLINE
+            'POWER ON' => 10, //POWER ON 
+        );
+        return $status_level_arr[$status];
+    }
+
     //查询结果"type"转换
     static function typeConvert($typecode){
         $typeconvertarr = array(
-            '8' => '高阻',
-            '9' => '手环',
-            '10' => '平衡电压',
-            '11' => '温度',
-            '12' => '低阻',
-            '13' => '温度',
+            '8' => 'GND_H',
+            '9' => 'WS',
+            '10' => 'VB',
+            '11' => 'TEMP',
+            '12' => 'GND_L',
+            '13' => 'HUMI',
+            '14' => 'ESI_V',
+            '15' => 'ESI_R',
+            '16' => 'ESD_V',
+            '17' => 'ESD_R',
         );
         $typename = $typeconvertarr[$typecode] ?: '';
         return $typename;
@@ -44,6 +64,10 @@ class Utils{
             switch(intval($typecode)){
                 case 8:
                 case 12:
+                case 14:
+                case 15:
+                case 16:
+                case 17:
                     $statusname = $statuscode & 0x20 ? 'FAIL' : 'PASS';
                     break;
                 case 9:
@@ -63,7 +87,7 @@ class Utils{
                 case 13:
                 case 10:
                     if ($statuscode & 0x40) {
-                        $statusname = 'STAND BY';
+                        $statusname = 'STANDBY';
                     } else if ($statuscode & 0x20) {
                         $statusname = 'FAIL';
                     } else {

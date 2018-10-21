@@ -4,12 +4,14 @@ class WebsocketClient{
     const IP = "0.0.0.0";
     const PORT = 7777;
 
-    const NORMALSTR = 0;
-    const MOTYPESET =1;
-    const DBTEST = 2;
-    const MOARR = 3;
-    const MOLINESET = 4;
-    const MOSTATIONSET = 5;
+    const DATA_REGION = "region data";
+    const DATA_LINE = "line data";
+    const DATA_STATION = "station data";
+
+    const SET_MONITOR_TYPE = "type set";
+    const SET_ID_LINE = "line id set";
+    const SET_ID_REGION = "region id set";
+    const SET_ID_STATION = "station id set";
     
     public $client;
     public $hs_succ;
@@ -57,11 +59,11 @@ class WebsocketClient{
 
     function setClient($type){
         if($type ==1){
-            $motypeset = json_encode(array("head" => static::MOTYPESET, "body" => "line"));
-            $moidset = json_encode(array("head" => static::MOLINESET, "body" => $this->randomLineid()));
+            $motypeset = json_encode(array("head" => static::SET_MONITOR_TYPE, "body" => "line"));
+            $moidset = json_encode(array("head" => static::SET_ID_LINE, "body" => $this->randomLineid()));
         }else{
-            $motypeset = json_encode(array("head" => static::MOTYPESET, "body" => "station"));
-            $moidset = json_encode(array("head" => static::MOSTATIONSET, "body" => mt_rand(5,99)));
+            $motypeset = json_encode(array("head" => static::SET_MONITOR_TYPE, "body" => "station"));
+            $moidset = json_encode(array("head" => static::SET_ID_STATION, "body" => mt_rand(5,99)));
         }
         @$this->client->push($motypeset);
         @$this->client->push($moidset);

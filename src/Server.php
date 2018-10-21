@@ -17,7 +17,7 @@ class Server{
     public $client_table;
 
     public function __construct(){
-        $time = microtime(true);
+        //$time = microtime(true);
         if(!is_dir(Config::LOG_DIR))
             mkdir(Config::LOG_DIR, 0777, true);
 
@@ -44,16 +44,16 @@ class Server{
         ]);
 
         $this->table = new Table($this->server);
-        echo "Server constructing takes: " . (microtime(true) - $time) . PHP_EOL;
+        //echo "Server constructing takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     function onManagerStart($server){
-        $time = microtime(true);
+        //$time = microtime(true);
         $this->logger = Loggers::loggerReg("manager");
         $this->logger->debug('onManagerStart: ',array(
             "server" => $server
         ));
-        echo "manager staring takes: " . (microtime(true) - $time) . PHP_EOL;
+        //echo "manager staring takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     function onManagerStop($server){
@@ -63,7 +63,7 @@ class Server{
     }
 
     function onWorkerStart($server,$worker_id){
-        $time = microtime(true);   
+        //$time = microtime(true);   
         if($server->taskworker){
             $task_worker_id = $worker_id - $server->setting['worker_num'];
             $this->task->name = "task_worker_".$task_worker_id;
@@ -91,10 +91,10 @@ class Server{
             echo "新进程开启！".PHP_EOL;
             $taskarr = Utils::readyArr(MsgLabel::TASK_PLACE_INIT);
             $server->task($taskarr);
-            $server->tick(2000, [$this, 'tickTableUpdate']);//开启定时器
+            $server->tick(1000, [$this, 'tickTableUpdate']);//开启定时器
         }
 
-        echo "$this->name starting takes: " . (microtime(true) - $time) . PHP_EOL;
+        //echo "$this->name starting takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     /**

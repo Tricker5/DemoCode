@@ -36,10 +36,17 @@ class Message{
                 $client_table->set("$fd", ["line_id" => $data["body"]]);
                 echo "已将 $fd 号客户端监控线体ID配置为：".$client_table->get("$fd", "line_id").PHP_EOL;
                 break;
+
             case MsgLabel::SET_ID_STATION:
                 echo "配置客户端监控工位...".PHP_EOL;
                 $client_table->set("$fd", ["station_id" => $data["body"]]);
                 echo "已将 $fd 号客户端监控工位ID配置为：".$client_table->get("$fd", "station_id").PHP_EOL;
+                break;
+            
+            case MsgLabel::SET_ID_PLACE:
+                echo "配置客户端监控地点...".PHP_EOL;
+                $client_table->set("$fd", ["place_id" => $data["body"]]);
+                echo "已将 $fd 号客户端监控地点ID配置为：".$client_table->get("$fd", "place_id").PHP_EOL;
                 break;
 
             default:

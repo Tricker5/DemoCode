@@ -4,9 +4,9 @@ namespace WSM;
 
 class Table{
     function __construct($server){
-        $time = microtime(true);
+        //$time = microtime(true);
         $this->createTable($server);
-        echo "Table creating takes: " . (microtime(true) - $time) . PHP_EOL;
+        //echo "Table creating takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
     function createTable($server){
@@ -17,6 +17,8 @@ class Table{
         $client_table->column("region_id", \swoole_table::TYPE_INT);
         $client_table->column("line_id", \swoole_table::TYPE_INT);
         $client_table->column("station_id", \swoole_table::TYPE_INT);
+        $client_table->column("rssi_line_id", \swoole_table::TYPE_INT);
+        $client_table->column("place_id", \swoole_table::TYPE_INT);
         $server->client_table = $client_table;
         $server->client_table->create();
 
