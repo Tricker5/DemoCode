@@ -90,11 +90,14 @@ class Server{
 
         if($worker_id === 0){
             echo "新进程开启！".PHP_EOL;
-            $taskarr = Utils::readyArr(MsgLabel::TASK_PLACE_INIT);
-            $server->task($taskarr);
-            $server->tick(1000, [$this, 'tickTableUpdate']);//开启定时器
+            $server->task(Utils::readyArr(MsgLabel::TASK_PLACE_INIT));
+            $server->task(Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE));
+            $server->tick(1000, [$this, 'tickTableUpdate']);//开启内存表更新定时器
         }
 
+        if($worker_id === 1){
+            $server->tick(30000, [$this, 'tickTableClean']);//开启内存表清理定时器
+        }
         //echo "$this->name starting takes: " . (microtime(true) - $time) . PHP_EOL;
     }
 
@@ -102,8 +105,21 @@ class Server{
      * 定时更新内存表
      */
     function tickTableUpdate(){
-        $taskarr = Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE);
-        $this->server->task($taskarr);
+        $this->server->task(Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE));
+    }
+
+    function tickTableClean(){
+        $check_seq = $this->server->var_table->get("table_seq", "int_value") - 5;//缓存流水号落后5认为该数据已过期
+        $device_table = $this->server->device_table;
+        $channel_table = $this->server->channel_table;
+        foreach($device_table as $d_table){
+            if($d_table["d_table_seq"] <= $check_seq)
+                $device_table->del($device_table->key());
+        }
+        foreach($channel_table as $ch_table){
+            if($ch_table["ch_table_seq"] <= $check_seq)
+                $channel_table->del($channel_table->key());
+        }
     }
 
     function start(){

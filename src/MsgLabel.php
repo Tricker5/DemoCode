@@ -25,6 +25,9 @@ class MsgLabel{
     const FINISH_TABLE_UPDATE = "tables updating finished";
     const FINISH_CLIENT_CLASSIFY =  "client classsifying finished";
 
+    const TABLE_CHANGED = "changed";
+    const TABLE_UNCHANGED = "unchanged";
+
     const DB_CONN_ERROR = 90;
     const DB_CONN_SUCCESS = 91;
 }

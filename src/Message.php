@@ -61,13 +61,15 @@ class Message{
         }
 
         //设定参数满足时立刻推送
-        if($client_table->exist($fd) && 
-            ($monitor_type = $client_table->get("$fd", "monitor_type")) != 0 &&
-            ($monitor_id = $client_table->get("$fd", "$monitor_type" . "_id")) != 0){
-                $server->task(Utils::readyArr(MsgLabel::TASK_PUSH, array(
-                    "monitor_type" => $monitor_type,
-                    "monitor_id_fd" => array($monitor_id => $fd) 
-                )));
+        $monitor_type = $client_table->get($fd, "monitor_type");
+        $monitor_id = $client_table->get($fd, "$monitor_type" . "_id");
+        if($client_table->exist($fd) && $monitor_type !== 0 && $monitor_type != "none" && $monitor_id !== 0){
+            //echo "参数满足\n";
+            $server->task(Utils::readyArr(MsgLabel::TASK_PUSH, array(
+                "monitor_type" => $monitor_type,
+                "monitor_id_fd" => array($monitor_id => array($fd)),
+                "monitor_need" => true, 
+            )));     
         }
     }
 }

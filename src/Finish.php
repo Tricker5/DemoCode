@@ -16,7 +16,7 @@ class Finish{
             case MsgLabel::FINISH_CLIENT_CLASSIFY;
                 while(list($monitor_type, $monitor_id_fd) = each($data["body"])){
                     if(count($monitor_id_fd) != 0){
-                        $body = array("monitor_type" => $monitor_type, "monitor_id_fd" => $monitor_id_fd);
+                        $body = array("monitor_type" => $monitor_type, "monitor_id_fd" => $monitor_id_fd, "monitor_need" => false);
                         $server->task(Utils::readyArr(MsgLabel::TASK_PUSH, $body));
                     }
                 }

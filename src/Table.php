@@ -10,6 +10,15 @@ class Table{
     }
 
     function createTable($server){
+        //创建全局变量表
+        $var_table = new \swoole_table(1024);
+        $var_table->column("int_value", \swoole_table::TYPE_INT, 8);
+        $var_table->column("string_value", \swoole_table::TYPE_STRING, 16);
+        $server->var_table = $var_table;
+        $server->var_table->create();
+        $server->var_table->set("table_seq", array("int_value" => 0));
+        $server->var_table->set("p_table_status", array("string_value" => MsgLabel::TABLE_CHANGED));
+
         //创建客户端信息表
         $client_table = new \swoole_table(Config::CLIENT_NUM * 4);
         $client_table->column("fd", \swoole_table::TYPE_INT);
@@ -42,6 +51,8 @@ class Table{
         $device_table->column("line_id", \swoole_table::TYPE_INT);
         $device_table->column("line_name", \swoole_table::TYPE_STRING, 32);
         $device_table->column("rssi_update_time", \swoole_table::TYPE_INT, 8);
+        $device_table->column("d_table_status", \swoole_table::TYPE_STRING, 16);
+        $device_table->column("d_table_seq", \swoole_table::TYPE_INT, 8);
         $server->device_table = $device_table;
         $server->device_table->create();
 
@@ -52,19 +63,14 @@ class Table{
         $channel_table->column("slot", \swoole_table::TYPE_INT, 1);
         $channel_table->column("port", \swoole_table::TYPE_INT, 1);
         $channel_table->column("type", \swoole_table::TYPE_STRING, 32);
-
         $channel_table->column("point_id", \swoole_table::TYPE_INT);
         $channel_table->column("point_name", \swoole_table::TYPE_STRING, 32);
         $channel_table->column("station_id", \swoole_table::TYPE_INT);
         $channel_table->column("station_name", \swoole_table::TYPE_STRING, 32);
         $channel_table->column("line_id", \swoole_table::TYPE_INT);
-
-        //$channel_table->column("seq", \swoole_table::TYPE_INT);
-        //$channel_table->column("pre_status", \swoole_table::TYPE_INT, 2);
         $channel_table->column("real_status", \swoole_table::TYPE_STRING, 16);
-        
-        //$channel_table->column("dt", \swoole_table::TYPE_INT, 8);
-        //$channel_table->column("pcdt", \swoole_table::TYPE_INT, 8);
+        $channel_table->column("ch_table_status", \swoole_table::TYPE_STRING, 16);
+        $channel_table->column("ch_table_seq", \swoole_table::TYPE_INT, 8);
 
         $server->channel_table = $channel_table;
         $server->channel_table->create();
