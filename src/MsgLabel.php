@@ -9,6 +9,7 @@ class MsgLabel{
     const DATA_STATION = "station data";
     const DATA_PLACE = "place data";
     const DATA_RSSI = "rssi data";
+    const DATA_INDEX = "data index";
 
     const SET_MONITOR_TYPE = "type set";
     const SET_ID_LINE = "line id set";
@@ -16,6 +17,7 @@ class MsgLabel{
     const SET_ID_STATION = "station id set";
     const SET_ID_PLACE = "place id set";
     const SET_ID_RSSI = "rssi line id set";
+    const SET_ID_INDEX = "index id set";
     
     const TASK_CLIENT_CLASSIFY = "client classify";
     const TASK_TABLE_UPDATE = "channel_table update";

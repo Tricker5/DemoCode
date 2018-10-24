@@ -67,6 +67,14 @@
                     <button onclick="setMoRegion();">监控虚拟区域中的多线体</button>
                 </td>
             </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="index" value="index" onclick="setMoType(this);">首页报警统计</td>
+                <td>
+                    请输入统计位置id（1~293）
+                    <input type="text" name = "indexid" id="indexid">
+                    <button onclick="setMoIndex();">确定</button>
+                </td>
+            </tr>
         </table>
     </div>
     <div id = "tablediv">
@@ -80,12 +88,16 @@
     const DATA_LINE = "line data";
     const DATA_STATION = "station data";
     const DATA_PLACE = "place data";
+    const DATA_RSSI = "rssi data";
+    const DATA_INDEX = "data index";
 
     const SET_MONITOR_TYPE = "type set";
     const SET_ID_LINE = "line id set";
     const SET_ID_REGION = "region id set";
     const SET_ID_STATION = "station id set";
     const SET_ID_PLACE = "place id set";
+    const SET_ID_RSSI = "rssi line id set";
+    const SET_ID_INDEX = "index id set";
 
     function dConnect(){
         try{
@@ -164,7 +176,17 @@
             jsonDataSend(SET_ID_REGION, 3);
     }
 
+    function setMoIndex(){
+        indexid = document.getElementById("indexid").value;
+        if(indexid >= 1 && indexid <= 293)
+            jsonDataSend(SET_ID_INDEX, indexid);
+        else
+            alert("请输入1～293之内的有效ID！");
+    }
+    
+
     function printMoArr(data){
+        status_arr = ["INFRARED", "STANDBY", "FAIL", "PASS", "SERVICE"];
         var tablediv = document.getElementById("tablediv");
         head = data.head;
         body = data.body;
@@ -181,6 +203,29 @@
                         "<td align='center' width = '200'>"+ i +"</td>"+
                         "<td align='center' width = '200'>"+body[i]+"</td>";
                 }
+        }else if(head == DATA_INDEX){
+            var table = 
+                "<table align='center' border=1 bordercolor='purple'>"+
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>总统计</td>"+
+                    "<td align='center' width = '200'>报警："+body.total_count.FAIL+"</td>"+
+                    "<td align='center' width = '200'>正常："+body.total_count.PASS+"</td>"+
+                    "<td align='center' width = '200'>离线："+body.total_count.OFFLINE+"</td>"+
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>分类统计</td>"+
+                    "<td align='center' width = '200'>高阻</td>"+
+                    "<td align='center' width = '200'>低阻</td>"+
+                    "<td align='center' width = '200'>手圈</td>"+
+                    "</tr>";
+            for(var i of status_arr){
+                printarr += 
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>" + i + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[8][i] ? body.type_count[8][i]: 0) + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[12][i] ? body.type_count[12][i]: 0) + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[9][i] ? body.type_count[9][i]: 0)+"</td>"+
+                    "</tr>"
+            }
         }else{
             switch(head){
                 case DATA_REGION:

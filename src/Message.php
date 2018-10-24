@@ -54,7 +54,13 @@ class Message{
                 $client_table->set("$fd", ["rssi_line_id" => $data["body"]]);
                 echo "已将 $fd 号客户端监控信号线体ID配置为：".$client_table->get("$fd", "rssi_line_id").PHP_EOL;
                 break;
-
+            
+            case MsgLabel::SET_ID_INDEX:
+                echo "配置客户端监控首页...".PHP_EOL;
+                $client_table->set("$fd", ["index_id" => $data["body"]]);
+                echo "已将 $fd 号客户端监控首页ID配置为：".$client_table->get("$fd", "index_id").PHP_EOL;
+                break;
+            
             default:
                 echo "未能识别来自 $fd 号客户端的信息：".PHP_EOL;
                 break;

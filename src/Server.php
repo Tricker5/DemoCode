@@ -90,6 +90,7 @@ class Server{
 
         if($worker_id === 0){
             echo "新进程开启！".PHP_EOL;
+            //初始化内存表
             $server->task(Utils::readyArr(MsgLabel::TASK_PLACE_INIT));
             $server->task(Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE));
             $server->tick(1000, [$this, 'tickTableUpdate']);//开启内存表更新定时器
@@ -107,7 +108,9 @@ class Server{
     function tickTableUpdate(){
         $this->server->task(Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE));
     }
-
+    /**
+     * 定时清理内存表
+     */
     function tickTableClean(){
         $check_seq = $this->server->var_table->get("table_seq", "int_value") - 5;//缓存流水号落后5认为该数据已过期
         $device_table = $this->server->device_table;

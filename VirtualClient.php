@@ -76,7 +76,7 @@ class WebsocketClient{
     
 }
 
-const CLIENT_NUM = 3000;//支持0～1000个客户端左右
+const CLIENT_NUM = 3000;
 
 $clients = [];
 $i = 0;

@@ -11,7 +11,7 @@ class Task{
 
         $logger->debug('onTask: ', array(
             'task_content' => $task_arr["head"],
-            'name' => $this->name,
+            'task_worker_name' => $this->name,
             'worker_pid' => $server->worker_pid,
             'worker_id' => $server->worker_id,
             'src_worker_id' => $src_worker_id,
@@ -62,7 +62,7 @@ class Task{
     }
 
     function tableUpdate($server){
-        $server->var_table->incr("table_seq", "int_value");
+        $server->var_table->incr("table_seq", "int_value");//流水号递增
         $table_seq = $server->var_table->get("table_seq", "int_value");
         $place_table = $server->place_table;
         $device_table = $server->device_table;
@@ -132,7 +132,9 @@ class Task{
             }
             */   
         }
+        //若本次通道表更新发生变化，则更新区域表状态
         if($channel_table_change){
+            //将重置状态部分写在此处，避免递归更新时出现BUG
             foreach($place_table as $p_table){
                 $place_table->set($p_table["id"], array("status" => "POWER ON"));
             }
@@ -171,6 +173,10 @@ class Task{
                     if($c_table["place_id"])
                         $fd_arr["place"][$c_table["place_id"]][] = $c_table["fd"];
                     break;
+                case "index":
+                    if($c_table["index_id"])
+                        $fd_arr["index"][$c_table["index_id"]][] = $c_table["fd"];
+                    break;
                 default:
                     break;
             }
@@ -208,6 +214,12 @@ class Task{
                 $msg_label = MsgLabel::DATA_RSSI;
                 $get_data_func = "getRssiData";
                 break;
+            case "index":
+                $msg_label = MsgLabel::DATA_INDEX;
+                $get_data_func = "getIndexData";
+                break;
+            default:
+                break;
         }
         foreach(array_keys($monitor_id_fd) as $monitor_id){
             if($monitor_data = $this->$get_data_func($server, $monitor_id, $table_seq, $monitor_need)){
@@ -232,8 +244,9 @@ class Task{
                 $region_data["rows"]["line_id"] = $p_table["id"]; 
                 $region_data["rows"]["line_name"] = $p_table["name"];
                 foreach($channel_table as $ch_table){
-                    //先生成结果集，避免在判断数据有效性时丢失数据
-                    if($p_table["id"] == $ch_table["line_id"]){
+                    //先生成未过期结果集，避免在判断数据有效性时丢失数据，
+                    if($p_table["id"] == $ch_table["line_id"] &&
+                        $ch_table["ch_table_seq"] == $table_seq){
                         $region_data["rows"]["line"][]= array(
                             "slot" => $ch_table["slot"],
                             "cport" => $ch_table["port"],
@@ -243,9 +256,8 @@ class Task{
                             "station_id" => $ch_table["station_id"],
                             "station_name" => $ch_table["station_name"]
                         );
-                        //检测是否数据发生变化且未过期
-                        if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED &&
-                            $ch_table["ch_table_seq"] == $table_seq){
+                        //检测是否数据发生变化
+                        if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED){
                                 $data_change = true;
                         }
                         //var_dump($data_change);    
@@ -265,7 +277,8 @@ class Task{
         $channel_table = $server->channel_table;
         $line_data = [];
         foreach($channel_table as $ch_table){
-            if($line_id == $ch_table["line_id"]){
+            if($line_id == $ch_table["line_id"] &&
+                $ch_table["ch_table_seq"] == $table_seq){
                 $line_data[]= array(
                     "slot" => $ch_table["slot"],
                     "cport" => $ch_table["port"],
@@ -275,8 +288,7 @@ class Task{
                     "id" => $ch_table["station_id"],
                     "p5name" => $ch_table["station_name"]
                 );
-                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED &&
-                    $ch_table["ch_table_seq"] == $table_seq)
+                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED)
                     $data_change = true;
             }
         }
@@ -291,7 +303,8 @@ class Task{
         $channel_table = $server->channel_table;
         $station_data = [];
         foreach($channel_table as $ch_table){
-            if($station_id == $ch_table["station_id"]){
+            if($station_id == $ch_table["station_id"] &&
+                $ch_table["ch_table_seq"] == $table_seq){
                 $station_data[] = array(
                     "stationId" => $ch_table["station_id"],
                     "status" => Utils::statusConvert($ch_table["type"], $ch_table["real_status"]),
@@ -302,8 +315,7 @@ class Task{
                     "port" => $ch_table["port"],
                     "type" => $ch_table["type"]
                 );
-                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED &&
-                    $ch_table["ch_table_seq"] == $table_seq)
+                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED)
                     $data_change = true;
             }
         }
@@ -337,8 +349,9 @@ class Task{
         $data_change = false;
         $device_table = $server->device_table;
         $rssi_data = [];
-        foreach($device_table as $d_table){
-            if($d_table["line_id"] == $rssi_line_id){
+        foreach($device_table as $d_table ){
+            if($d_table["line_id"] == $rssi_line_id &&
+                $d_table["d_table_seq"] == $table_seq){
                 $rssi_data[] = array(
                     "ip" => $d_table["ip"],
                     "line_id" =>$d_table["line_id"],
@@ -347,14 +360,51 @@ class Task{
                     "sn" => $d_table["sn"],
                     "updatetime" => $d_table["rssi_update_time"]
                 );
-                if($d_table["d_table_status"] == MsgLabel::TABLE_CHANGED &&
-                    $d_table["d_table_seq"] == $table_seq)
+                if($d_table["d_table_status"] == MsgLabel::TABLE_CHANGED)
                     $data_change = true;
             }
         }
         if($data_change || $monitor_need)
             return $rssi_data;
         else
+            return false;
+    }
+
+    function getIndexData($server, $index_id, $table_seq, $monitor_need){
+        $index_data = [];
+        $data_change = false;
+        $place_table = $server->place_table;
+        $channel_table = $server->channel_table;
+        $total_count = ["FAIL" => 0, "OFFLINE" => 0, "PASS" => 0];
+        $type_count = array(8 => [], 9 => [], 10 => [], 11 => [], 12 => [], 13 => [], 14 => [], 15 => [], 16 => [], 17=>[], "mpointTotalNumber" => 0);
+        foreach($channel_table as $ch_table){
+            if($this->idPaternityTest($place_table, $ch_table["station_id"], $index_id)&&
+                $ch_table["ch_table_seq"] == $table_seq){
+                //echo "enter the counting\n";
+                $status = Utils::statusConvert($ch_table["type"], $ch_table["real_status"]);
+                if($status != "STANDBY"){ //STANDBY 状态不认为是报警
+                    if($status == "OFFLINE")
+                        $total_count["OFFLINE"]++;
+                    elseif($status == "PASS")
+                        $total_count["PASS"]++;
+                    else
+                        $total_count["FAIL"]++;
+                }
+                //抑制首次出现该 $status 时执行该操作的警告
+                @$type_count[$ch_table["type"]]["total"]++;
+                @$type_count[$ch_table["type"]][$status]++;
+                @$type_count["mpointTotalNumber"]++;
+                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED)
+                    $data_change = true;
+            }
+        }
+
+        if($data_change || $monitor_need){
+            $index_data["total_count"] = $total_count;
+            $index_data["type_count"] = $type_count;
+            //print_r($index_data);
+            return $index_data;
+        }else
             return false;
     }
 
@@ -371,6 +421,28 @@ class Task{
             }
         }else
             return;
+    }
+
+    /**
+     * 判断该监控点id是否位于某个指定父节点id之下
+     * 该函数名翻译之后叫作 ID 亲子鉴定 非常形象 ^_^
+     */
+    function idPaternityTest($place_table, $child_id, $parent_id){
+        if($child_id != $parent_id){
+            $level = $place_table->get($child_id, "level");
+            if($level === 1){
+                //echo "to the top\n";
+                return false; 
+            }
+            //echo " now the level $level doesn't match \n";
+            $pid = $place_table->get($child_id, "pid");
+            if($this->idPaternityTest($place_table, $pid, $parent_id))
+                return true;  
+        }else{
+            //echo " now the level $level matches \n";
+            return true;
+        }
+            
     }
 }
 
