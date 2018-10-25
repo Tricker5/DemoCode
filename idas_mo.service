@@ -1,0 +1,15 @@
+[Unit]
+Description=Monitoring service for idas
+After=network.target
+
+[Service]
+User=root
+Group=root
+Type=forking
+PIDFile=/home/tricker_5/code/WSmonitoring/idas_mo.pid
+ExecStart=/usr/bin/php /home/tricker_5/code/WSmonitoring/main.php
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -38,6 +38,7 @@ class Server{
         $this->server->on('close', [$this->close, "onClose"]);
 
         $this->server->set([
+            //'daemonize' => true,
             'worker_num' => 2,
             'task_worker_num' => 6,
             'log_file' => Config::LOG_DIR . '/swoole_log',
