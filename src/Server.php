@@ -38,10 +38,10 @@ class Server{
         $this->server->on('close', [$this->close, "onClose"]);
 
         $this->server->set([
-            'daemonize' => true,
+            //'daemonize' => true,
             'pid_file' => __DIR__ . "/../pid/idas_mo.pid",
-            'worker_num' => 2,
-            'task_worker_num' => 6,
+            'worker_num' => Config::WORKER_NUM,
+            'task_worker_num' => Config::TASK_WORKER_NUM,
             'log_file' => Config::LOG_DIR . '/swoole_log',
         ]);
 

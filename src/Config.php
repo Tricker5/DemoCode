@@ -14,10 +14,12 @@ class Config{
     const DBUPWD = "abc123456";
 
     /**
-     * WebSocket参数配置置
+     * WebSocket参数配置
      */
     const WSIP = "0.0.0.0";
     const WSPORT = 7777;
+    const WORKER_NUM = 2;
+    const TASK_WORKER_NUM = 4;
 
     /**
      * log配置

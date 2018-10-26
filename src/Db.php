@@ -59,7 +59,7 @@ class Db{
             
             //return MsgLabel::DB_CONN_SUCCESS;
         }catch(\PDOException $e){
-            Loggers::$loggers["taskworker"]->critical($e->getMessage);
+            Loggers::$loggers["task_worker"]->critical($e->getMessage());
             //var_dump($e->errorInfo);
             //return MsgLabel::DB_CONN_ERROR;
         }
@@ -69,7 +69,7 @@ class Db{
         try{
             static::$place_table_pre->execute();
         }catch(\PDOException $e){
-            Loggers::$loggers["taskworker"]->critical($e->getMessage);
+            Loggers::$loggers["task_worker"]->critical($e->getMessage());
             Db::getNewDb();
         }
     }
@@ -78,7 +78,7 @@ class Db{
         try{
             static::$device_table_pre->execute();
         }catch(\PDOException $e){
-            Loggers::$loggers["taskworker"]->critical($e->getMessage);
+            Loggers::$loggers["task_worker"]->critical($e->getMessage());
             Db::getNewDb();
         }
     }
@@ -87,7 +87,7 @@ class Db{
         try{
             static::$channel_table_pre->execute();
         }catch(\PDOException $e){
-            Loggers::$loggers["taskworker"]->critical($e->getMessage);
+            Loggers::$loggers["task_worker"]->critical($e->getMessage());
             Db::getNewDb();
         }
     }
