@@ -27,10 +27,6 @@ class Task{
                 }
                 break;
             
-            case MsgLabel::TASK_PLACE_INIT:
-                $this->placeInit($server->place_table);
-                break;
-            
             case MsgLabel::TASK_CLIENT_CLASSIFY:
                 if(count($fd_arr = $this->clientClassify($server)) != 0)
                     return Utils::readyArr(MsgLabel::FINISH_CLIENT_CLASSIFY, $fd_arr);
@@ -47,26 +43,32 @@ class Task{
         }
     }
 
-    function placeInit($place_table){
-        echo "place initing ...\n";
-        Db::getPlaceTable();
-        while($row = Db::$place_table_pre->fetch(\PDO::FETCH_ASSOC)){
-            $place_table->set("{$row["id"]}", array(
-                "id" => $row["id"],
-                "pid" => $row["pid"],
-                "name" => trim($row["name"]),
-                "level" => $row["level"],
-                "status" => "POWER ON"
-            ));
-        }
-    }
-
     function tableUpdate($server){
         $server->var_table->incr("table_seq", "int_value");//流水号递增
         $table_seq = $server->var_table->get("table_seq", "int_value");
         $place_table = $server->place_table;
         $device_table = $server->device_table;
         $channel_table = $server->channel_table;
+        //更新区域表
+        Db::getPlaceTable();
+        while($row = Db::$place_table_pre->fetch(\PDO::FETCH_ASSOC)){
+            if(!$place_table->exist($row["id"]))
+                $status = "POWER ON";//新的区域点状态置为默认值
+            else
+                $status = $place_table->get($row["id"], "status");
+            $place_table->set($row["id"], array(
+                "id" => $row["id"],
+                "pid" => $row["pid"],
+                "name" => $row["name"],
+                "level" => $row["level"],
+                "status" => $status,
+                "p_table_seq" => $table_seq,
+            ));
+        }
+        foreach($place_table as $p_table){ //清理被删除的区域
+            if($p_table["p_table_seq"] != $table_seq)
+                $place_table->del($p_table["id"]);
+        }
         //更新设备表
         Db::getDeviceTable();
         while($row = Db::$device_table_pre->fetch(\PDO::FETCH_ASSOC)){
@@ -124,13 +126,7 @@ class Task{
                 "real_status" => $row["real_status"],
                 "ch_table_seq" => $table_seq,
                 "ch_table_status" => $ch_table_status,
-            ));
-            /*
-            if($ch_table_status == MsgLabel::TABLE_CHANGED){
-                $this->placeUpdate($place_table, $row["station_id"], Utils::statusConvert($row["type"], $row["real_status"]));
-                $server->var_table->set("p_table_status", array("string_value" => MsgLabel::TABLE_CHANGED));
-            }
-            */   
+            )); 
         }
         //若本次通道表更新发生变化，则更新区域表状态
         if($channel_table_change){
@@ -219,13 +215,32 @@ class Task{
                 $get_data_func = "getIndexData";
                 break;
             default:
+                echo "非法 monitor_type" . $monitor_type . PHP_EOL;
+                return;
                 break;
         }
         foreach(array_keys($monitor_id_fd) as $monitor_id){
             if($monitor_data = $this->$get_data_func($server, $monitor_id, $table_seq, $monitor_need)){
-                foreach($monitor_id_fd[$monitor_id] as $fd){
-                    if($client_table->exist($fd))
-                        $server->push($fd, json_encode(Utils::readyArr($msg_label, $monitor_data)));
+                if($monitor_type == "region"){ //若推送类型为区域，则对数据进行分页处理
+                    foreach($monitor_id_fd[$monitor_id] as $fd){
+                        if($client_table->exist($fd)){
+                            $rows = [];
+                            $region_page = $client_table->get($fd, "region_page");
+                            for($i = ($region_page - 1) * Config::LINE_NUM_PER_PAGE;
+                                $i <= $region_page * Config::LINE_NUM_PER_PAGE - 1; 
+                                ++$i){
+                                if(isset($monitor_data["rows"][$i]))
+                                    $region_data["rows"][] = $monitor_data["rows"][$i];
+                            }
+                            $region_data["totals"] = $monitor_data["totals"];
+                            $server->push($fd, json_encode(Utils::readyArr($msg_label, $region_data)));
+                        }
+                    }
+                }else{
+                    foreach($monitor_id_fd[$monitor_id] as $fd){
+                        if($client_table->exist($fd))
+                            $server->push($fd, json_encode(Utils::readyArr($msg_label, $monitor_data)));
+                    }
                 }
                 echo "Data Pushed\n";
             }
@@ -233,40 +248,50 @@ class Task{
     }
 
     function getRegionData($server, $region_id, $table_seq, $monitor_need){
-        $region_data = [];
+        $region_data = ["totals" => 0, "rows" => array()];//提前定义该数组避免当所选区域下无线体时 rows 未定义的报警
         $line_num = 0;
         $data_change = false;
         $channel_table = $server->channel_table;
         $place_table = $server->place_table;
+        $line_id_arr = [];//临时数组，用于快速寻找 line_id 对应的行数
+        //先整理该区域下所有线体，避免为了兼容输出格式而对 channel_table 多次遍历
         foreach($place_table as $p_table){
             if($p_table["pid"] == $region_id){
-                $line_num++;
-                $region_data["rows"]["line_id"] = $p_table["id"]; 
-                $region_data["rows"]["line_name"] = $p_table["name"];
-                foreach($channel_table as $ch_table){
-                    //先生成未过期结果集，避免在判断数据有效性时丢失数据，
-                    if($p_table["id"] == $ch_table["line_id"] &&
-                        $ch_table["ch_table_seq"] == $table_seq){
-                        $region_data["rows"]["line"][]= array(
-                            "slot" => $ch_table["slot"],
-                            "cport" => $ch_table["port"],
-                            "type" => $ch_table["type"],
-                            "sn" => $ch_table["sn"],
-                            "status" => $ch_table["real_status"],
-                            "station_id" => $ch_table["station_id"],
-                            "station_name" => $ch_table["station_name"]
-                        );
-                        //检测是否数据发生变化
-                        if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED){
-                                $data_change = true;
-                        }
-                        //var_dump($data_change);    
-                    }
-                }
+                $region_data["rows"][$line_num] = array(
+                    "line_id" => $p_table["id"],
+                    "line_name" => $p_table["name"],
+                );
+                $line_id_arr[$p_table["id"]] = $line_num;//记录该线体id对应输出数据的行数
+                $line_num ++;
             }
         }
+        //先生成未过期结果集，避免在判断数据有效性时丢失数据
+        foreach($channel_table as $ch_table){
+            if($place_table->get($ch_table["line_id"], "pid") == $region_id &&
+                $ch_table["ch_table_seq"] == $table_seq){
+                $region_data["rows"][$line_id_arr[$ch_table["line_id"]]]["line"][] = array(
+                    "slot" => $ch_table["slot"],
+                    "cport" => $ch_table["port"],
+                    "type" => $ch_table["type"],
+                    "sn" => $ch_table["sn"],
+                    "status" => $ch_table["real_status"],
+                    "station_id" => $ch_table["station_id"],
+                    "station_name" => $ch_table["station_name"]
+                );
+                //检测是否数据发生变化
+                if($ch_table["ch_table_status"] == MsgLabel::TABLE_CHANGED){
+                    $data_change = true;
+                }
+            } 
+        }
+        //清理该数据整理方式所可能产生的某些未开监控点的线体
+        foreach($region_data["rows"] as $r_data_row){
+            if(!isset($r_data_row["line"]))
+                unset($region_data["rows"][$line_id_arr[$r_data_row["line_id"]]]);
+        }
+        $region_data["totals"] = count($region_data["rows"]);
+
         if($data_change || $monitor_need){
-            $region_data["totals"] = $line_num;
             return $region_data;
         }else
             return false;
@@ -414,6 +439,10 @@ class Task{
     function placeUpdate($place_table, $id, $status){
         $p_table = $place_table->get($id);
         //若当前区域表地点状态优先级更低（值更大）则将新状态赋予该地点
+        if(!$p_table["status"])
+            echo "p_table: " . $p_table["status"] . PHP_EOL;
+        if(!$status)
+            echo "status: " . $status . PHP_EOL;
         if(Utils::statusLevel($p_table["status"]) > Utils::statusLevel($status)){
             $place_table->set($p_table["id"], array("status" => $status));
             if($p_table["level"] !=  1){

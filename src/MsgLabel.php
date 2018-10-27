@@ -21,7 +21,6 @@ class MsgLabel{
     
     const TASK_CLIENT_CLASSIFY = "client classify";
     const TASK_TABLE_UPDATE = "channel_table update";
-    const TASK_PLACE_INIT = "place_table init";
     const TASK_PUSH = "push data";
 
     const FINISH_TABLE_UPDATE = "tables updating finished";

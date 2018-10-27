@@ -59,7 +59,7 @@ class Utils{
             261 => 'POWER OFF'
         );
         if($statuscode > 255)
-            $statusname = $statusconvertarr[$statuscode] ?: '';
+            $statusname = $statusconvertarr[$statuscode] ?: 'POWER ON';
         else{
             switch(intval($typecode)){
                 case 8:

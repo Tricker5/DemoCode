@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>test_client</title>
+</head>
+<body>
+    <div>
+        <button id="connect" onclick="dConnect();">Connect</button>
+        <button id="close" onclick="Close();">Close</button>
+    </div> 
+    <div id = "connectstatus">
+
+    </div>
+
+    <br> 
+
+    <div>
+        <table border = 1>
+            <tr align = "center">
+                <td>监控类型</td>
+                <td>监控范围</td>
+            </tr>
+            <tr align = "left">
+                <td><input type="radio" name="motype" id="none" value="none" onclick="setMoType(this);">无</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="line" value="line" onclick="setMoType(this);">线体</td>
+                <td>
+                    请输入线体id
+                    <input type="text" name = "lineid" id="lineid">
+                    <button onclick="setMoLine();">确定</button>
+                </td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="station" value="station" onclick="setMoType(this);">工位</td>
+                <td>
+                    请输入工位id
+                    <input type="text" name = "stationid" id="stationid">
+                    <button onclick="setMoStation();">确定</button>
+                </td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="place" value="place" onclick="setMoType(this);">地点</td>
+                <td>
+                    请输入地点id
+                    <input type="text" name = "placeid" id="placeid">
+                    <button onclick="setMoPlace();">确定</button>
+                </td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="rssi" value="rssi" onclick="setMoType(this);">区域信号</td>
+                <td>
+                    请输入信号区域id
+                    <input type="text" name = "rssiid" id="rssiid">
+                    <button onclick="setMoRssi();">确定</button>
+                </td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="region" value="region" onclick="setMoType(this);">区域</td>
+                <td>
+                    请输入区域id
+                    <input type="text" name = "regionid" id="regionid">                   
+                <br>
+                    请输入页码
+                    <input type="text" name = "regionpage" id="regionpage">
+                <br>
+                    <button onclick="setMoRegion();">确定</button>
+                </td>
+            </tr>
+            <tr>
+                <td><input type="radio" name="motype" id="index" value="index" onclick="setMoType(this);">首页报警统计</td>
+                <td>
+                    请输入统计位置id
+                    <input type="text" name = "indexid" id="indexid">
+                    <button onclick="setMoIndex();">确定</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id = "tablediv">
+
+    </div>
+</body>
+<script>
+    var dbClientSocket;
+
+    const DATA_REGION = "region data";
+    const DATA_LINE = "line data";
+    const DATA_STATION = "station data";
+    const DATA_PLACE = "place data";
+    const DATA_RSSI = "rssi data";
+    const DATA_INDEX = "data index";
+
+    const SET_MONITOR_TYPE = "type set";
+    const SET_ID_LINE = "line id set";
+    const SET_ID_REGION = "region id set";
+    const SET_ID_STATION = "station id set";
+    const SET_ID_PLACE = "place id set";
+    const SET_ID_RSSI = "rssi line id set";
+    const SET_ID_INDEX = "index id set";
+
+    function dConnect(){
+        try{
+            if(!dbClientSocket){
+                dbClientSocket = new WebSocket("ws://127.0.0.1:7777");
+                dbClientSocket.onopen= dOpen;
+                dbClientSocket.onerror = dError;
+            }
+        }catch(e){
+            alert("error"+e.data);
+            return;
+        }
+           
+    }
+    function dOpen(){
+        alert('连接成功！');
+        dbClientSocket.onmessage= dMessage;
+        dbClientSocket.onclose = dClose;
+    }
+    function dError(e){
+        alert('连接错误！');
+        dbClientSocket = null;
+    }
+    function dMessage(msg){
+        data = JSON.parse(msg.data);
+        console.log(data);
+        //printMoArr(data);
+    }
+
+    function dClose(){
+        alert('连接关闭！');
+        dbClientSocket = null;
+    }
+    function Send(){
+        jsonDataSend(NORMALSTR, document.getElementById("msg").value);
+    }
+    function Close(){
+        dbClientSocket.close();
+    }
+
+    /*
+    * 客户端配置部分函数
+    * 配置监控类型setMoType()、配置监控线体setMoLine()、配置监控工位setMoStation()
+    */
+    function setMoType(obj){
+        if(obj.checked){
+            motype = obj.value;
+        }else
+            return;
+        if(motype == "none")
+            document.getElementById("tablediv").innerHTML = "";
+        jsonDataSend(SET_MONITOR_TYPE, motype);
+    }
+
+    function setMoLine(){
+        lineid = document.getElementById("lineid").value; 
+        jsonDataSend(SET_ID_LINE, lineid);
+    }
+    
+    function setMoStation(){
+        stationid = document.getElementById("stationid").value;
+        jsonDataSend(SET_ID_STATION, stationid);
+    }
+
+    function setMoPlace(){
+        placeid = document.getElementById("placeid").value;
+        jsonDataSend(SET_ID_PLACE, placeid);
+    }
+
+    function setMoRssi(){
+        rssiid = document.getElementById("rssiid").value;
+        jsonDataSend(SET_ID_RSSI, rssiid);
+    }
+
+    function setMoRegion(){
+        regionid = document.getElementById("regionid").value;
+        regionpage = document.getElementById("regionpage").value;
+        regionarr = {
+            "region_id" : regionid,
+            "region_page" : regionpage ? regionpage : 1
+        };
+        jsonDataSend(SET_ID_REGION, regionarr);
+    }
+
+    function setMoIndex(){
+        indexid = document.getElementById("indexid").value;
+        jsonDataSend(SET_ID_INDEX, indexid);
+    }
+    
+
+    function printMoArr(data){
+        status_arr = ["INFRARED", "STANDBY", "FAIL", "PASS", "SERVICE"];
+        var tablediv = document.getElementById("tablediv");
+        head = data.head;
+        body = data.body;
+        var printarr = "";
+        if(head == DATA_PLACE){
+            var table = 
+                    "<table align='center' border=1 bordercolor='purple'>"+
+                        "<tr align='center' height='40'>"+
+                        "<td align='center' width = '200'>子节点ID</td>"+
+                        "<td align='center' width = '200'>子节点状态</td>"+
+                        "</tr>";
+                for(var i in body){
+                    printarr += "<tr align='center' height='40'>"+
+                        "<td align='center' width = '200'>"+ i +"</td>"+
+                        "<td align='center' width = '200'>"+body[i]+"</td>";
+                }
+        }else if(head == DATA_INDEX){
+            var table = 
+                "<table align='center' border=1 bordercolor='purple'>"+
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>总统计</td>"+
+                    "<td align='center' width = '200'>报警："+body.total_count.FAIL+"</td>"+
+                    "<td align='center' width = '200'>正常："+body.total_count.PASS+"</td>"+
+                    "<td align='center' width = '200'>离线："+body.total_count.OFFLINE+"</td>"+
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>分类统计</td>"+
+                    "<td align='center' width = '200'>高阻</td>"+
+                    "<td align='center' width = '200'>低阻</td>"+
+                    "<td align='center' width = '200'>手圈</td>"+
+                    "</tr>";
+            for(var i of status_arr){
+                printarr += 
+                    "<tr align='center' height='40'>"+
+                    "<td align='center' width = '200'>" + i + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[8][i] ? body.type_count[8][i]: 0) + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[12][i] ? body.type_count[12][i]: 0) + "</td>"+
+                    "<td align='center' width = '200'>" + (body.type_count[9][i] ? body.type_count[9][i]: 0)+"</td>"+
+                    "</tr>"
+            }
+        }else{
+            switch(head){
+                case DATA_REGION:
+                    body = body.rows.line
+                case DATA_LINE:
+                    var table = 
+                        "<table align='center' border=1 bordercolor='purple'>"+
+                            "<tr align='center' height='40'>"+
+                            "<td align='center' width = '200'>频道插槽</td>"+
+                            "<td align='center' width = '200'>频道端口</td>"+
+                            "<td align='center' width = '200'>频道类型</td>"+
+                            "<td align='center' width = '200'>设备SN号</td>"+
+                            "<td align='center' width = '200'>实时状态</td>"+
+                            "<td align='center' width = '200'>区域ID</td>"+
+                            "<td align='center' width = '200'>所在区域</td>"+
+                            "</tr>";
+                    break;
+                case DATA_STATION:
+                    var table = 
+                        "<table align='center' border=1 bordercolor='purple'>"+
+                            "<tr align='center' height='40'>"+
+                            "<td align='center' width = '200'>工位ID</td>"+
+                            "<td align='center' width = '200'>实时状态</td>"+
+                            "<td align='center' width = '200'>监控点ID</td>"+
+                            "<td align='center' width = '200'>监控点名称</td>"+
+                            "<td align='center' width = '200'>设备SN号</td>"+
+                            "<td align='center' width = '200'>频道插槽</td>"+
+                            "<td align='center' width = '200'>频道端口</td>"+
+                            "<td align='center' width = '200'>频道类型</td>"+
+                            "</tr>";
+                    break;
+                default:
+                    break;
+            }
+            for(var i in body){
+                printarr += "<tr align='center' height='40'>";
+                for(var j in body[i]){
+                    printarr += "<td align='center' width = '200'>"+body[i][j]+"</td>";
+                }
+                printarr += "</tr>";
+            }
+        }
+        var print_str = table + printarr + "</table>";
+        tablediv.innerHTML = print_str;
+    }
+    
+    //将json对象转化成易读的字符串
+    function jsonToStr(data){
+        var str ="";
+        for(var i in data){
+            for(var j in data[i]){
+                str=str+data[i][j]+" ";
+            }
+            str+="\n";
+        }
+        return str;
+    }
+
+    //打包发出json字符串
+    function jsonDataSend(head, body){
+        data = {
+            "head" : head, 
+            "body" : body
+        }
+        dbClientSocket.send(JSON.stringify(data));
+    }
+        
+        
+</script>
+</html>

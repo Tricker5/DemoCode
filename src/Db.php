@@ -65,6 +65,7 @@ class Db{
         }
     }
 
+    //断线重连机制待重写
     static function getPlaceTable(){
         try{
             static::$place_table_pre->execute();

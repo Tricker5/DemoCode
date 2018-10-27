@@ -93,7 +93,6 @@ class Server{
         if($worker_id === 0){
             echo "新进程开启！".PHP_EOL;
             //初始化内存表
-            $server->task(Utils::readyArr(MsgLabel::TASK_PLACE_INIT));
             $server->task(Utils::readyArr(MsgLabel::TASK_TABLE_UPDATE));
             $server->tick(1000, [$this, 'tickTableUpdate']);//开启内存表更新定时器
         }

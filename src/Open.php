@@ -13,6 +13,7 @@ class Open{
         
         //注册连接客户端
         $server->client_table->set("$fd", ["fd" => $fd]);
+        $server->client_table->set("$fd", ["region_page" => 1]);
         echo "当前客户端连接数为： ".$server->client_table->count().PHP_EOL;
     }
 }

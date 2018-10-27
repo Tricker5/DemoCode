@@ -27,8 +27,15 @@ class Message{
 
             case MsgLabel::SET_ID_REGION:
                 echo "配置客户端监控区域...".PHP_EOL;
-                $client_table->set("$fd", ["region_id" => $data["body"]]);
-                echo "已将 $fd 号客户端监控区域ID配置为：".$client_table->get("$fd", "region_id").PHP_EOL;
+                if($data["body"]["region_id"]){
+                    $client_table->set("$fd", ["region_id" => $data["body"]["region_id"]]);
+                    echo "已将 $fd 号客户端监控区域ID配置为：".$client_table->get("$fd", "region_id").PHP_EOL;
+                }
+                #####在 onOpen 事件中对 region_page 设为默认值为 1 #######
+                if($data["body"]["region_page"]){
+                    $client_table->set("$fd", ["region_page" => $data["body"]["region_page"]]);
+                    echo "已将 $fd 号客户端监控区域页码配置为：".$client_table->get("$fd", "region_page").PHP_EOL;
+                }
                 break;
             
             case MsgLabel::SET_ID_LINE:
@@ -69,7 +76,7 @@ class Message{
         //设定参数满足时立刻推送
         $monitor_type = $client_table->get($fd, "monitor_type");
         $monitor_id = $client_table->get($fd, "$monitor_type" . "_id");
-        if($client_table->exist($fd) && $monitor_type !== 0 && $monitor_type != "none" && $monitor_id !== 0){
+        if($client_table->exist($fd) && $monitor_type != "" && $monitor_type != "none" && $monitor_id !== 0){
             //echo "参数满足\n";
             $server->task(Utils::readyArr(MsgLabel::TASK_PUSH, array(
                 "monitor_type" => $monitor_type,

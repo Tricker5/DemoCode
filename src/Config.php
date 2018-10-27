@@ -9,7 +9,7 @@ class Config{
      * 数据库参数配置
      */
     const DBHOST = "10.0.2.2, 1433";
-    const DBNAME = "kaifaiot_dev_gj";
+    const DBNAME = "kaifaiot_dev_gj_from_junhuilin";
     const DBUNAME = "sa";
     const DBUPWD = "abc123456";
 
@@ -32,6 +32,11 @@ class Config{
      */
     const DEVICE_NUM = 8192;
     const CLIENT_NUM = 5000;
+
+    /**
+     * 其他配置 
+     */
+    const LINE_NUM_PER_PAGE = 3;
 }
 
 
