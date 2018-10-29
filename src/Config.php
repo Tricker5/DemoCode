@@ -9,7 +9,7 @@ class Config{
      * 数据库参数配置
      */
     const DBHOST = "10.0.2.2, 1433";
-    const DBNAME = "kaifaiot_dev_gj_from_junhuilin";
+    const DBNAME = "kaifaiot_dev_gj";
     const DBUNAME = "sa";
     const DBUPWD = "abc123456";
 

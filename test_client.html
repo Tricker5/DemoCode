@@ -100,7 +100,7 @@
     const SET_ID_REGION = "region id set";
     const SET_ID_STATION = "station id set";
     const SET_ID_PLACE = "place id set";
-    const SET_ID_RSSI = "rssi line id set";
+    const SET_ID_RSSI = "rssi region id set";
     const SET_ID_INDEX = "index id set";
 
     function dConnect(){
@@ -128,7 +128,7 @@
     function dMessage(msg){
         data = JSON.parse(msg.data);
         console.log(data);
-        //printMoArr(data);
+        printMoArr(data);
     }
 
     function dClose(){
@@ -236,7 +236,28 @@
         }else{
             switch(head){
                 case DATA_REGION:
-                    body = body.rows.line
+                    body = body.rows;
+                    var table = 
+                        "<table align='center' border=1 bordercolor='purple'>"+
+                            "<tr align='center' height='40'>"+
+                            "<td align='center' width = '200'>频道插槽</td>"+
+                            "<td align='center' width = '200'>频道端口</td>"+
+                            "<td align='center' width = '200'>频道类型</td>"+
+                            "<td align='center' width = '200'>设备SN号</td>"+
+                            "<td align='center' width = '200'>实时状态</td>"+
+                            "<td align='center' width = '200'>区域ID</td>"+
+                            "<td align='center' width = '200'>所在区域</td>"+
+                            "</tr>";
+                    for(var i in body){
+                        printarr += "<tr align='center' height='40'>";
+                        for(var j in body[i]["line"]){
+                            for(var k in body[i]["line"][j]){
+                                printarr += "<td align='center' width = '200'>"+body[i]["line"][j][k]+"</td>";
+                            }
+                            printarr += "</tr>";   
+                        }
+                    }
+                    break;
                 case DATA_LINE:
                     var table = 
                         "<table align='center' border=1 bordercolor='purple'>"+
@@ -249,6 +270,13 @@
                             "<td align='center' width = '200'>区域ID</td>"+
                             "<td align='center' width = '200'>所在区域</td>"+
                             "</tr>";
+                    for(var i in body){
+                        printarr += "<tr align='center' height='40'>";
+                        for(var j in body[i]){
+                            printarr += "<td align='center' width = '200'>"+body[i][j]+"</td>";
+                        }
+                        printarr += "</tr>";
+                    }
                     break;
                 case DATA_STATION:
                     var table = 
@@ -263,16 +291,16 @@
                             "<td align='center' width = '200'>频道端口</td>"+
                             "<td align='center' width = '200'>频道类型</td>"+
                             "</tr>";
+                    for(var i in body){
+                        printarr += "<tr align='center' height='40'>";
+                        for(var j in body[i]){
+                            printarr += "<td align='center' width = '200'>"+body[i][j]+"</td>";
+                        }
+                        printarr += "</tr>";
+                    }
                     break;
                 default:
                     break;
-            }
-            for(var i in body){
-                printarr += "<tr align='center' height='40'>";
-                for(var j in body[i]){
-                    printarr += "<td align='center' width = '200'>"+body[i][j]+"</td>";
-                }
-                printarr += "</tr>";
             }
         }
         var print_str = table + printarr + "</table>";

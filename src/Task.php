@@ -162,8 +162,8 @@ class Task{
                     if($c_table["station_id"])
                         $fd_arr["station"][$c_table["station_id"]][] = $c_table["fd"];
                 case "rssi":
-                    if($c_table["rssi_line_id"])
-                        $fd_arr["rssi"][$c_table["rssi_line_id"]][] = $c_table["fd"];
+                    if($c_table["rssi_region_id"])
+                        $fd_arr["rssi"][$c_table["rssi_region_id"]][] = $c_table["fd"];
                     break;
                 case "place":
                     if($c_table["place_id"])
@@ -370,12 +370,13 @@ class Task{
         }    
     }
 
-    function getRssiData($server, $rssi_line_id, $table_seq, $monitor_need){
+    function getRssiData($server, $rssi_region_id, $table_seq, $monitor_need){
         $data_change = false;
         $device_table = $server->device_table;
+        $place_table = $server->place_table;
         $rssi_data = [];
         foreach($device_table as $d_table ){
-            if($d_table["line_id"] == $rssi_line_id &&
+            if($place_table->get($d_table["line_id"], "pid") == $rssi_region_id &&
                 $d_table["d_table_seq"] == $table_seq){
                 $rssi_data[] = array(
                     "ip" => $d_table["ip"],

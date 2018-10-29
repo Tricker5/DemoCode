@@ -26,7 +26,7 @@ class Table{
         $client_table->column("region_id", \swoole_table::TYPE_INT);
         $client_table->column("line_id", \swoole_table::TYPE_INT);
         $client_table->column("station_id", \swoole_table::TYPE_INT);
-        $client_table->column("rssi_line_id", \swoole_table::TYPE_INT);
+        $client_table->column("rssi_region_id", \swoole_table::TYPE_INT);
         $client_table->column("place_id", \swoole_table::TYPE_INT);
         $client_table->column("index_id", \swoole_table::TYPE_INT);
         $client_table->column("region_page", \swoole_table::TYPE_INT, 1);

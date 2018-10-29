@@ -16,7 +16,7 @@ class MsgLabel{
     const SET_ID_REGION = "region id set";
     const SET_ID_STATION = "station id set";
     const SET_ID_PLACE = "place id set";
-    const SET_ID_RSSI = "rssi line id set";
+    const SET_ID_RSSI = "rssi region id set";
     const SET_ID_INDEX = "index id set";
     
     const TASK_CLIENT_CLASSIFY = "client classify";

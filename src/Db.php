@@ -45,7 +45,7 @@ class Db{
             static::$db = new \PDO(
                 "sqlsrv: Server = ".Config::DBHOST.
                 "; Database = ".Config::DBNAME.
-                "; LoginTimeout = 1",
+                "; LoginTimeout = 5",
                 Config::DBUNAME,
                 Config::DBUPWD,
                 array(

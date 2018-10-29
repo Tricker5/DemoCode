@@ -58,8 +58,8 @@ class Message{
 
             case MsgLabel::SET_ID_RSSI:
                 echo "配置客户端监控信号线体...".PHP_EOL;
-                $client_table->set("$fd", ["rssi_line_id" => $data["body"]]);
-                echo "已将 $fd 号客户端监控信号线体ID配置为：".$client_table->get("$fd", "rssi_line_id").PHP_EOL;
+                $client_table->set("$fd", ["rssi_region_id" => $data["body"]]);
+                echo "已将 $fd 号客户端监控信号线体ID配置为：".$client_table->get("$fd", "rssi_region_id").PHP_EOL;
                 break;
             
             case MsgLabel::SET_ID_INDEX:
